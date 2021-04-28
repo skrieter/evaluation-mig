@@ -1,16 +1,7 @@
 #! /bin/bash
-JAR=target/evaluation-mig-1.0-SNAPSHOT-jar-with-dependencies.jar
-MAINCLASS=test.MIGEvaluator
+JAR=mig-evaluation.jar
+MAINCLASS=org.spldev.evaluation.mig.MIGEvaluator
 
-# Clean eval jar
-mvn clean
-
-# Build eval jar
-mvn package
-
-# Pause
-read -p "Press [Enter] key to continue..."
-
-java -jar ${JAR} de.ovgu.featureide.fm.benchmark.OutputCleaner config
+java -jar ${JAR} org.spldev.evaluation.OutputCleaner config
 
 java -da -Xmx12g -jar ${JAR} ${MAINCLASS} config
