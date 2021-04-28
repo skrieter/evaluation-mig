@@ -411,11 +411,6 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		solver.setSelectionStrategy(fixedFeatures, true, true);
 		for (int literal : coreDead) {
 			final int varX = fixedFeatures[Math.abs(literal) - 1];
-//			if (varX == -literal) {
-//				fixedFeatures[Math.abs(literal) - 1] = 0;
-//				mig.getVertex(-varX).setStatus(Status.Normal);
-//				mig.getVertex(varX).setStatus(Status.Normal);
-//			} else 
 			if (varX == 0) {
 				mig.getVertex(-literal).setStatus(Status.Normal);
 				mig.getVertex(literal).setStatus(Status.Normal);
@@ -432,7 +427,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 					fixedFeatures[Math.abs(literal) - 1] = 0;
 					mig.getVertex(-varX).setStatus(Status.Normal);
 					mig.getVertex(varX).setStatus(Status.Normal);
-					throw new RuntimeException("Timeout");
+					break;
 				case TRUE:
 					solver.assignmentPop();
 					mig.getVertex(-varX).setStatus(Status.Normal);

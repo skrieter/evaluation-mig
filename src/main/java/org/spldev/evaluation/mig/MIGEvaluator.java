@@ -583,8 +583,7 @@ public class MIGEvaluator extends Evaluator {
 		csvWriter.addValue(name);
 	}
 
-	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1,
-			int versionID2) {
+	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1, int versionID2) {
 		csvWriter.addValue(config.systemIDs.get(systemID));
 		csvWriter.addValue(systemIteration);
 		csvWriter.addValue(algorithmID);

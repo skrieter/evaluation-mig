@@ -50,11 +50,6 @@ public class BuildStatistic {
 	public static final int addedVar = 3;
 	public static final int removedVar = 4;
 	public static final int sharedVar = 5;
-//	public static final int removedCore = 7;
-//	public static final int sharedCore = 8;
-//	public static final int addedRedundant = 9;
-//	public static final int removedRedundant = 10;
-//	public static final int sharedRedundant = 11;
 
 	public static final int redundantRegular = 6;
 	public static final int strongRegular = 7;
