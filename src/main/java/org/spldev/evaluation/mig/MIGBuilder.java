@@ -1,3 +1,25 @@
+/* -----------------------------------------------------------------------------
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
+ * Copyright (C) 2021  Sebastian Krieter
+ * 
+ * This file is part of Evaluation-MIG.
+ * 
+ * Evaluation-MIG is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ * 
+ * Evaluation-MIG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Evaluation-MIG.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ * See <https://github.com/skrieter/evaluation-mig> for further information.
+ * -----------------------------------------------------------------------------
+ */
 package org.spldev.evaluation.mig;
 
 import java.util.ArrayDeque;
@@ -17,10 +39,10 @@ import org.spldev.formula.clause.LiteralList.Order;
 import org.spldev.formula.clause.mig.MIG;
 import org.spldev.formula.clause.mig.Vertex;
 import org.spldev.formula.clause.mig.Vertex.Status;
+import org.spldev.formula.clause.solver.SStrategy;
 import org.spldev.formula.clause.solver.Sat4JSolver;
 import org.spldev.formula.clause.solver.SatSolver;
 import org.spldev.formula.clause.solver.SatSolver.SatResult;
-import org.spldev.formula.clause.solver.SatSolver.SelectionStrategy;
 import org.spldev.util.job.InternalMonitor;
 
 /**
@@ -61,7 +83,7 @@ public class MIGBuilder {
 	protected void findCoreFeatures(InternalMonitor monitor) {
 		monitor.setTotalWork(fixedFeatures.length);
 
-		solver.setSelectionStrategy(fixedFeatures, true, true);
+		solver.setSelectionStrategy(SStrategy.inverse(fixedFeatures));
 
 		// find core/dead features
 		for (int i = 0; i < fixedFeatures.length; i++) {
@@ -265,13 +287,13 @@ public class MIGBuilder {
 	protected void bfsWeak(LiteralList affectedVariables, InternalMonitor monitor) {
 		monitor.setTotalWork(mig.getVertices().size());
 		final ArrayDeque<Vertex> queue = new ArrayDeque<>();
-		ArrayList<Integer> literals = new ArrayList<>();
+		final ArrayList<Integer> literals = new ArrayList<>();
 		final boolean[] mark = new boolean[mig.size() + 1];
 		final int[] fixed = new int[mig.size() + 1];
 		final int orgSize = solver.getAssignmentSize();
-		solver.setSelectionStrategy(SelectionStrategy.ORG);
+		solver.setSelectionStrategy(SStrategy.original());
 		for (final Vertex vertex : mig.getVertices()) {
-			if (vertex.isNormal() && (affectedVariables == null
+			if (vertex.isNormal() && ((affectedVariables == null)
 					|| affectedVariables.containsAnyVariable(Math.abs(vertex.getVar())))) {
 				final int var = vertex.getVar();
 				final int negVar = -var;
@@ -279,7 +301,7 @@ public class MIGBuilder {
 				Arrays.fill(fixed, 0);
 				int[] model = null;
 
-				for (LiteralList solution : solver.getSolutionHistory()) {
+				for (final LiteralList solution : solver.getSolutionHistory()) {
 					if (solution.containsAllLiterals(var)) {
 						if (model == null) {
 							model = Arrays.copyOf(solution.getLiterals(), solution.size());
@@ -298,18 +320,20 @@ public class MIGBuilder {
 					final int index = Math.abs(strongVar);
 					fixed[index] = strongVar;
 					mark[index] = true;
-					strongVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
+					strongVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
+							.forEach(literals::add);
 				}
-				
-				vertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
-				
+
+				vertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
+						.forEach(literals::add);
+
 				if (model == null) {
 					final int[] solution = solver.findSolution();
 					model = Arrays.copyOf(solution, solution.length);
 				}
-				solver.setSelectionStrategy(model, true, true);
+				solver.setSelectionStrategy(SStrategy.inverse(model));
 
-				for (Integer literal : literals) {
+				for (final Integer literal : literals) {
 					final int index = Math.abs(literal);
 					if (!mark[index]) {
 						mark[index] = true;
@@ -339,7 +363,8 @@ public class MIGBuilder {
 									solver.assignmentPush(strongVertex.getVar());
 									fixed[index] = strongVertex.getVar();
 								}
-								strongVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
+								strongVertex.getComplexClauses().stream()
+										.flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
 							}
 							break;
 						case TIMEOUT:
@@ -351,7 +376,7 @@ public class MIGBuilder {
 							LiteralList.resetConflicts(model, solver.getSolution());
 							solver.shuffleOrder(random);
 							curVertex.getStrongEdges().stream().map(Vertex::getVar).forEach(literals::add);
-							
+
 //							Vertex complement = mig.getVertex(-curVertex.getVar());
 //							for (final Vertex strongVertex : complement.getStrongEdges()) {
 //								literals.add(strongVertex.getVar());
@@ -360,14 +385,15 @@ public class MIGBuilder {
 						}
 					} else {
 						curVertex.getStrongEdges().stream().map(Vertex::getVar).forEach(literals::add);
-						
+
 //						Vertex complement = mig.getVertex(-curVertex.getVar());
 //						for (final Vertex strongVertex : complement.getStrongEdges()) {
 //							literals.add(strongVertex.getVar());
 //						}
 					}
-					curVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
-					
+					curVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
+							.forEach(literals::add);
+
 //					Vertex complement = mig.getVertex(-curVertex.getVar());
 //					for (final LiteralList complexClause : complement.getComplexClauses()) {
 //						for (int literal : complexClause.getLiterals()) {
@@ -375,7 +401,7 @@ public class MIGBuilder {
 //						}
 //					}
 
-					for (Integer literal : literals) {
+					for (final Integer literal : literals) {
 						final int index = Math.abs(literal);
 						if (!mark[index]) {
 							mark[index] = true;
@@ -388,7 +414,7 @@ public class MIGBuilder {
 			solver.assignmentClear(orgSize);
 			monitor.step();
 		}
-		for (Vertex vertex : mig.getVertices()) {
+		for (final Vertex vertex : mig.getVertices()) {
 			vertex.getStrongEdges().clear();
 			vertex.getComplexClauses().clear();
 		}

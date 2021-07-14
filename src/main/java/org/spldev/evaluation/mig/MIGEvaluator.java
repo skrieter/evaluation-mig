@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * Evaluation-MIG - Program for the evalaution of building incremetnal MIGs.
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
  * Copyright (C) 2021  Sebastian Krieter
  * 
  * This file is part of Evaluation-MIG.
@@ -38,13 +38,13 @@ import org.spldev.evaluation.Evaluator;
 import org.spldev.evaluation.properties.ListProperty;
 import org.spldev.evaluation.properties.Property;
 import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.CNFFormatManager;
+import org.spldev.formula.clause.Clauses;
 import org.spldev.formula.clause.LiteralList;
 import org.spldev.formula.clause.analysis.ConditionallyCoreDeadAnalysisMIG;
 import org.spldev.formula.clause.analysis.CoreDeadAnalysis;
-import org.spldev.formula.clause.io.DIMACSFormat;
 import org.spldev.formula.clause.mig.MIG;
 import org.spldev.formula.clause.mig.Vertex;
+import org.spldev.formula.expression.io.FormulaFormatManager;
 import org.spldev.util.io.FileHandler;
 import org.spldev.util.io.csv.CSVWriter;
 import org.spldev.util.job.Executor;
@@ -52,13 +52,14 @@ import org.spldev.util.logging.Logger;
 
 public class MIGEvaluator extends Evaluator {
 
-	protected static final ListProperty<String> settingsProperty = new ListProperty<>("settings", String::toString);
+	protected static final ListProperty<String> settingsProperty = new ListProperty<>("settings",
+			Property.StringConverter);
 	protected static final Property<Integer> randomConfigsProperty = new Property<>("random_configs",
-			Integer::parseInt);
+			Property.IntegerConverter);
 	protected static final Property<Integer> randomConfigSplitsProperty = new Property<>("random_config_splits",
-			Integer::parseInt);
+			Property.IntegerConverter);
 	protected static final Property<Integer> randomLiteralsProperty = new Property<>("random_literals",
-			Integer::parseInt, 100);
+			Property.IntegerConverter, 100);
 
 	private static Path root = Paths.get("models");
 
@@ -84,8 +85,6 @@ public class MIGEvaluator extends Evaluator {
 			System.out.println("Configuration path not specified!");
 			return;
 		}
-		CNFFormatManager.getInstance().addExtension(new XmlCNFFormat());
-		CNFFormatManager.getInstance().addExtension(new DIMACSFormat());
 
 		final MIGEvaluator evaluator = new MIGEvaluator(args[0], "config");
 		evaluator.init();
@@ -93,6 +92,7 @@ public class MIGEvaluator extends Evaluator {
 		evaluator.dispose();
 	}
 
+	@Override
 	public void run() {
 		super.run();
 
@@ -101,7 +101,7 @@ public class MIGEvaluator extends Evaluator {
 		randomLiteralsValue = randomLiteralsProperty.getValue();
 
 		algorithmID = 0;
-		for (String settingsValue : settingsProperty.getValue()) {
+		for (final String settingsValue : settingsProperty.getValue()) {
 			settings = settingsValue;
 			checkRedundancy = "T".equals(settings.split("_")[0]);
 			detectStrong = "T".equals(settings.split("_")[1]);
@@ -119,7 +119,7 @@ public class MIGEvaluator extends Evaluator {
 			Logger.logInfo("Start");
 			tabFormatter.setTabLevel(1);
 
-			int systemIndexEnd = config.systemNames.size();
+			final int systemIndexEnd = config.systemNames.size();
 
 			for (systemID = 0; systemID < systemIndexEnd; systemID++) {
 				final String systemName = config.systemNames.get(systemID);
@@ -138,7 +138,7 @@ public class MIGEvaluator extends Evaluator {
 							.getValue(); systemIteration++) {
 						algorithmID = 0;
 						logSystemRun();
-						for (String settingsValue : settingsProperty.getValue()) {
+						for (final String settingsValue : settingsProperty.getValue()) {
 							settings = settingsValue;
 							checkRedundancy = "T".equals(settings.split("_")[0]);
 							detectStrong = "T".equals(settings.split("_")[1]);
@@ -150,7 +150,7 @@ public class MIGEvaluator extends Evaluator {
 							build();
 						}
 					}
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					Logger.logError(e);
 				}
 			}
@@ -162,7 +162,7 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	protected void logSystemRun() {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 		sb.append("System Iteration: ");
 		sb.append(systemIteration);
 		sb.append("/");
@@ -171,7 +171,7 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	protected void logSettings() {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 		sb.append("Using Settings: ");
 		sb.append(settings);
 		sb.append(" (");
@@ -184,10 +184,10 @@ public class MIGEvaluator extends Evaluator {
 
 	private void build() {
 //		BuildStatistic[][] crossStatistics = new BuildStatistic[modelPaths.size()][modelPaths.size()];
-		BuildStatistic[] accStatistics = new BuildStatistic[modelPaths.size() - 1];
-		BuildStatistic[] seqStatistics = new BuildStatistic[modelPaths.size() - 1];
-		BuildStatistic[] conStatistics = new BuildStatistic[modelPaths.size() - 1];
-		for (int i = 0; i < modelPaths.size() - 1; i++) {
+		final BuildStatistic[] accStatistics = new BuildStatistic[modelPaths.size() - 1];
+		final BuildStatistic[] seqStatistics = new BuildStatistic[modelPaths.size() - 1];
+		final BuildStatistic[] conStatistics = new BuildStatistic[modelPaths.size() - 1];
+		for (int i = 0; i < (modelPaths.size() - 1); i++) {
 			accStatistics[i] = new BuildStatistic();
 			seqStatistics[i] = new BuildStatistic();
 			conStatistics[i] = new BuildStatistic();
@@ -214,7 +214,7 @@ public class MIGEvaluator extends Evaluator {
 				Logger.logInfo("Build accumulative " + (i + 1) + "/" + modelPaths.size() + ": "
 						+ root.relativize(path2).toString());
 
-				BuildStatistic statistic = accStatistics[i - 1];
+				final BuildStatistic statistic = accStatistics[i - 1];
 				IncrementalMIGBuilder.statistic = statistic;
 
 				lastMig = computeIncMig(cnf2, lastMig);
@@ -275,7 +275,7 @@ public class MIGEvaluator extends Evaluator {
 				final CNF cnf2 = cnfs.get(i);
 				Logger.logInfo("Build Inc MIG " + i + "/" + modelPaths.size());
 
-				BuildStatistic statistic = seqStatistics[i - 1];
+				final BuildStatistic statistic = seqStatistics[i - 1];
 				IncrementalMIGBuilder.statistic = statistic;
 
 				final MIG incMig = computeIncMig(cnf2, regMig);
@@ -289,7 +289,7 @@ public class MIGEvaluator extends Evaluator {
 			Logger.logInfo(
 					"Build Reg MIG " + (i + 1) + "/" + modelPaths.size() + ": " + root.relativize(path1).toString());
 
-			BuildStatistic curBuildStatistic = new BuildStatistic();
+			final BuildStatistic curBuildStatistic = new BuildStatistic();
 			RegularMIGBuilder.statistic = curBuildStatistic;
 
 			final MIG regMig = computeRegMig(cnf1);
@@ -300,11 +300,11 @@ public class MIGEvaluator extends Evaluator {
 			transferStatisticData(curBuildStatistic, seqStatistics[i - 1]);
 			transferStatisticData(curBuildStatistic, conStatistics[i - 1]);
 
-			if (i + 1 < modelPaths.size()) {
+			if ((i + 1) < modelPaths.size()) {
 				final CNF cnf2 = cnfs.get(i + 1);
 				Logger.logInfo("Build Inc MIG " + (i + 2) + "/" + modelPaths.size());
 
-				BuildStatistic statistic = conStatistics[i];
+				final BuildStatistic statistic = conStatistics[i];
 				IncrementalMIGBuilder.statistic = statistic;
 
 				final MIG incMig = computeIncMig(cnf2, regMig);
@@ -348,7 +348,8 @@ public class MIGEvaluator extends Evaluator {
 		cnfs = new ArrayList<>();
 		Files.walk(modelHistoryPath).filter(Files::isRegularFile).sorted(Comparator.comparing(Path::toString))
 				.peek(p -> Logger.logInfo("Load " + root.relativize(p).toString())).peek(modelPaths::add)
-				.map(p -> FileHandler.parse(p, CNFFormatManager.getInstance()).orElse(Logger::logProblems))
+				.map(p -> FileHandler.parse(p, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+						.orElse(Logger::logProblems))
 				.filter(cnf2 -> {
 					if (cnf2 == null) {
 						modelPaths.remove(modelPaths.size() - 1);
@@ -370,7 +371,7 @@ public class MIGEvaluator extends Evaluator {
 
 	private MIG computeRegMig(final CNF cnf) {
 		System.gc();
-		RegularMIGBuilder migBuilder = new RegularMIGBuilder();
+		final RegularMIGBuilder migBuilder = new RegularMIGBuilder();
 		migBuilder.setCheckRedundancy(checkRedundancy);
 		migBuilder.setDetectStrong(detectStrong);
 		return Executor.run(migBuilder, cnf).orElse(Logger::logProblems);
@@ -378,7 +379,7 @@ public class MIGEvaluator extends Evaluator {
 
 	private MIG computeIncMig(final CNF cnf, MIG oldMig) {
 		System.gc();
-		IncrementalMIGBuilder migBuilder = new IncrementalMIGBuilder(oldMig);
+		final IncrementalMIGBuilder migBuilder = new IncrementalMIGBuilder(oldMig);
 		migBuilder.setCheckRedundancy(checkRedundancy);
 		migBuilder.setDetectStrong(detectStrong);
 		migBuilder.setAdd(detectAnomalies);
@@ -410,9 +411,9 @@ public class MIGEvaluator extends Evaluator {
 
 	private void useMig1(MIG mig, final CNF cnf, int versionID1, int versionID2) {
 		int breakCount = 0;
-		for (Vertex vertex : mig.getVertices()) {
+		for (final Vertex vertex : mig.getVertices()) {
 			if (vertex.isNormal()) {
-				ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
+				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
 				incAnalysis.setFixedFeatures(new int[] { vertex.getVar() }, 1);
 				Executor.run(incAnalysis, cnf);
 				if (++breakCount == 10) {
@@ -422,11 +423,11 @@ public class MIGEvaluator extends Evaluator {
 		}
 		long start, end;
 		final List<Integer> indexList = getIndexList(cnf);
-		for (Integer literal : indexList) {
+		for (final Integer literal : indexList) {
 			if (mig.getVertex(literal).isNormal()) {
 				System.gc();
 				start = System.nanoTime();
-				ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
+				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
 				incAnalysis.setFixedFeatures(new int[] { literal }, 1);
 				Executor.run(incAnalysis, cnf);
 				end = System.nanoTime();
@@ -439,7 +440,7 @@ public class MIGEvaluator extends Evaluator {
 	private void useNoMig(final CNF cnf, int versionID1, int versionID2) {
 		int breakCount = 0;
 		for (int i = 2; i <= cnf.getVariableMap().size(); i++) {
-			CoreDeadAnalysis incAnalysis1 = new CoreDeadAnalysis();
+			final CoreDeadAnalysis incAnalysis1 = new CoreDeadAnalysis();
 			incAnalysis1.setAssumptions(new LiteralList(i));
 			Executor.run(incAnalysis1, cnf);
 			if (++breakCount == 10) {
@@ -448,10 +449,10 @@ public class MIGEvaluator extends Evaluator {
 		}
 		long start, end;
 		final List<Integer> indexList = getIndexList(cnf);
-		for (Integer literal : indexList) {
+		for (final Integer literal : indexList) {
 			System.gc();
 			start = System.nanoTime();
-			CoreDeadAnalysis incAnalysis = new CoreDeadAnalysis();
+			final CoreDeadAnalysis incAnalysis = new CoreDeadAnalysis();
 			incAnalysis.setAssumptions(new LiteralList(literal));
 			Executor.run(incAnalysis, cnf);
 			end = System.nanoTime();
@@ -461,7 +462,7 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	private List<Integer> getIndexList(final CNF cnf) {
-		List<Integer> indexList = new ArrayList<>();
+		final List<Integer> indexList = new ArrayList<>();
 		IntStream.range(1, cnf.getVariables().size() + 1).forEach(l -> {
 			indexList.add(-l);
 			indexList.add(l);
@@ -583,7 +584,8 @@ public class MIGEvaluator extends Evaluator {
 		csvWriter.addValue(name);
 	}
 
-	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1, int versionID2) {
+	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1,
+			int versionID2) {
 		csvWriter.addValue(config.systemIDs.get(systemID));
 		csvWriter.addValue(systemIteration);
 		csvWriter.addValue(algorithmID);
@@ -600,10 +602,10 @@ public class MIGEvaluator extends Evaluator {
 		csvWriter.addValue(algorithmID);
 		csvWriter.addValue(versionID1);
 		csvWriter.addValue(versionID2);
-		for (long time : statistic.time) {
+		for (final long time : statistic.time) {
 			csvWriter.addValue(time);
 		}
-		for (long data : statistic.data) {
+		for (final long data : statistic.data) {
 			csvWriter.addValue(data);
 		}
 	}

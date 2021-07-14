@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * Evaluation-MIG - Program for the evalaution of building incremetnal MIGs.
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
  * Copyright (C) 2021  Sebastian Krieter
  * 
  * This file is part of Evaluation-MIG.
@@ -85,7 +85,7 @@ public class RegularMIGBuilder extends MIGBuilder implements MonitorableFunction
 		}
 
 		start = System.nanoTime();
-		long added = addClauses(cnf, checkRedundancy, monitor.subTask(checkRedundancy ? 100 : 10));
+		final long added = addClauses(cnf, checkRedundancy, monitor.subTask(checkRedundancy ? 100 : 10));
 		end = System.nanoTime();
 		statistic.time[BuildStatistic.timeSecondAddRegular] = end - start;
 		statistic.data[BuildStatistic.redundantRegular] = (int) (cleanedClausesList.size() - added);
@@ -100,16 +100,12 @@ public class RegularMIGBuilder extends MIGBuilder implements MonitorableFunction
 		monitor.step();
 		end = System.nanoTime();
 		statistic.time[BuildStatistic.timeFinishRegular] = end - start;
-		statistic.data[BuildStatistic.coreRegular] = (int) mig
-				.getVertices().stream()
-				.filter(v -> !v.isNormal())
+		statistic.data[BuildStatistic.coreRegular] = (int) mig.getVertices().stream().filter(v -> !v.isNormal())
 				.count();
-		statistic.data[BuildStatistic.strongRegular] = (int) mig
-				.getVertices().stream()
-				.filter(Vertex::isNormal)
+		statistic.data[BuildStatistic.strongRegular] = (int) mig.getVertices().stream().filter(Vertex::isNormal)
 				.flatMap(v -> v.getStrongEdges().stream()).count();
-		statistic.data[BuildStatistic.weakRegular] = mig.getVertices().stream().flatMap(v -> v.getComplexClauses().stream())
-				.mapToInt(c -> c.size() - 1).sum();
+		statistic.data[BuildStatistic.weakRegular] = mig.getVertices().stream()
+				.flatMap(v -> v.getComplexClauses().stream()).mapToInt(c -> c.size() - 1).sum();
 
 		return mig;
 	}

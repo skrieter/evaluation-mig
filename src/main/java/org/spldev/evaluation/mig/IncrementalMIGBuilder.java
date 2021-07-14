@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * Evaluation-MIG - Program for the evalaution of building incremetnal MIGs.
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
  * Copyright (C) 2021  Sebastian Krieter
  * 
  * This file is part of Evaluation-MIG.
@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.spldev.formula.VariableMap;
 import org.spldev.formula.clause.CNF;
 import org.spldev.formula.clause.Clauses;
 import org.spldev.formula.clause.LiteralList;
@@ -40,7 +39,9 @@ import org.spldev.formula.clause.mig.MIG.BuildStatus;
 import org.spldev.formula.clause.mig.Vertex;
 import org.spldev.formula.clause.mig.Vertex.Status;
 import org.spldev.formula.clause.solver.RuntimeContradictionException;
+import org.spldev.formula.clause.solver.SStrategy;
 import org.spldev.formula.clause.solver.Sat4JSolver;
+import org.spldev.formula.expression.atomic.literal.VariableMap;
 import org.spldev.util.job.InternalMonitor;
 import org.spldev.util.job.MonitorableFunction;
 
@@ -48,7 +49,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 
 	public static BuildStatistic statistic;
 
-	private static enum Changes {
+	private enum Changes {
 		UNCHANGED, ADDED, REMOVED, REPLACED
 	}
 
@@ -128,7 +129,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		}
 
 		start = System.nanoTime();
-		long added = add(cnf, checkRedundancy, addedClauses);
+		final long added = add(cnf, checkRedundancy, addedClauses);
 		end = System.nanoTime();
 		statistic.time[BuildStatistic.timeSecondAddIncremental] = end - start;
 		statistic.data[BuildStatistic.redundantIncremental] = (int) (cleanedClausesList.size() - added);
@@ -144,13 +145,9 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		monitor.step();
 		end = System.nanoTime();
 		statistic.time[BuildStatistic.timeFinishIncremental] = end - start;
-		statistic.data[BuildStatistic.coreIncremental] = (int) mig
-				.getVertices().stream()
-				.filter(v -> !v.isNormal())
+		statistic.data[BuildStatistic.coreIncremental] = (int) mig.getVertices().stream().filter(v -> !v.isNormal())
 				.count();
-		statistic.data[BuildStatistic.strongIncremental] = (int) mig
-				.getVertices().stream()
-				.filter(Vertex::isNormal)
+		statistic.data[BuildStatistic.strongIncremental] = (int) mig.getVertices().stream().filter(Vertex::isNormal)
 				.flatMap(v -> v.getStrongEdges().stream()).count();
 		statistic.data[BuildStatistic.weakIncremental] = mig.getVertices().stream()
 				.flatMap(v -> v.getComplexClauses().stream()).mapToInt(c -> c.size() - 1).sum();
@@ -160,7 +157,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 	public static double getChangeRatio(CNF cnf1, CNF cnf2) {
 		final Set<String> allVariables = new HashSet<>(cnf2.getVariableMap().getNames());
 		allVariables.addAll(cnf1.getVariableMap().getNames());
-		VariableMap variables = new VariableMap(allVariables);
+		final VariableMap variables = new VariableMap(allVariables);
 
 		final HashSet<LiteralList> adaptedNewClauses = cnf1.getClauses().stream()
 				.map(c -> c.adapt(cnf1.getVariableMap(), variables).get()) //
@@ -178,7 +175,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 				.filter(c -> !adaptedNewClauses.contains(c)) //
 				.collect(Collectors.toCollection(HashSet::new));
 
-		HashSet<LiteralList> allClauses = new HashSet<>(adaptedNewClauses);
+		final HashSet<LiteralList> allClauses = new HashSet<>(adaptedNewClauses);
 		allClauses.addAll(adaptedOldClauses);
 		return (addedClauses.size() + removedClauses.size()) / (double) allClauses.size();
 	}
@@ -210,7 +207,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		changes = addedClauses.isEmpty() ? removedClauses.isEmpty() ? Changes.UNCHANGED : Changes.REMOVED
 				: removedClauses.isEmpty() ? Changes.ADDED : Changes.REPLACED;
 
-		HashSet<LiteralList> allClauses = new HashSet<>(adaptedNewClauses);
+		final HashSet<LiteralList> allClauses = new HashSet<>(adaptedNewClauses);
 		allClauses.addAll(adaptedOldClauses);
 //		changeRatio = (addedClauses.size() + removedClauses.size()) / (double) allClauses.size();
 
@@ -221,11 +218,12 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 
 		statistic.data[BuildStatistic.addedClauses] = addedClauses.size();
 		statistic.data[BuildStatistic.removedClauses] = removedClauses.size();
-		statistic.data[BuildStatistic.sharedClauses] = allClauses.size() - (addedClauses.size() + removedClauses.size());
+		statistic.data[BuildStatistic.sharedClauses] = allClauses.size()
+				- (addedClauses.size() + removedClauses.size());
 	}
 
 	private void core(CNF cnf, InternalMonitor monitor) {
-		int[] coreDead = oldMig.getVertices().stream() //
+		final int[] coreDead = oldMig.getVertices().stream() //
 				.filter(Vertex::isCore) //
 				.mapToInt(Vertex::getVar) //
 				.map(l -> Clauses.adapt(l, oldMig.getCnf().getVariableMap(), cnf.getVariableMap())) //
@@ -236,7 +234,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 				}).toArray();
 		switch (changes) {
 		case ADDED:
-			for (int literal : coreDead) {
+			for (final int literal : coreDead) {
 				solver.assignmentPush(literal);
 				fixedFeatures[Math.abs(literal) - 1] = 0;
 			}
@@ -247,7 +245,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 			break;
 		case REPLACED:
 			checkOldCoreLiterals(coreDead);
-			for (int literal : coreDead) {
+			for (final int literal : coreDead) {
 				fixedFeatures[Math.abs(literal) - 1] = 0;
 			}
 			findCoreFeatures(monitor);
@@ -296,8 +294,8 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 						return true;
 					}).peek(redundancySolver::addClause);
 				} else {
-					cnfStream = cnfStream.sorted(lengthComparator).distinct().filter(c ->
-						c.size() < 3 || !redundantClauses.contains(c));
+					cnfStream = cnfStream.sorted(lengthComparator).distinct()
+							.filter(c -> (c.size() < 3) || !redundantClauses.contains(c));
 				}
 				mig.setRedundancyStatus(BuildStatus.Incremental);
 				break;
@@ -336,15 +334,15 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 					}).peek(redundancySolver::addClause);
 				} else {
 					final Sat4JSolver redundancySolver = new Sat4JSolver(new CNF(variables));
-					cnfStream = cnfStream.sorted(lengthComparator).distinct().filter(c -> 
-						c.size() < 3 || !redundantClauses.contains(c) || !isRedundant(redundancySolver, c)
-					).peek(redundancySolver::addClause);
+					cnfStream = cnfStream.sorted(lengthComparator).distinct().filter(
+							c -> (c.size() < 3) || !redundantClauses.contains(c) || !isRedundant(redundancySolver, c))
+							.peek(redundancySolver::addClause);
 				}
 				mig.setRedundancyStatus(BuildStatus.Incremental);
 				break;
 			}
 			case UNCHANGED: {
-				cnfStream = cnfStream.distinct().filter(c -> c.size() < 3 || !redundantClauses.contains(c));
+				cnfStream = cnfStream.distinct().filter(c -> (c.size() < 3) || !redundantClauses.contains(c));
 				mig.setRedundancyStatus(mig.getRedundancyStatus());
 				break;
 			}
@@ -364,14 +362,14 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		switch (changes) {
 		case REMOVED:
 		case REPLACED:
-			loop: for (LiteralList strongEdge : oldMig.getDetectedStrong()) {
+			loop: for (final LiteralList strongEdge : oldMig.getDetectedStrong()) {
 				final LiteralList adaptClause = strongEdge
 						.adapt(oldMig.getCnf().getVariableMap(), mig.getCnf().getVariableMap()).get();
 				if (adaptClause != null) {
 					final int[] literals = adaptClause.getLiterals();
 					final int l1 = -literals[0];
 					final int l2 = -literals[1];
-					for (LiteralList solution : solver.getSolutionHistory()) {
+					for (final LiteralList solution : solver.getSolutionHistory()) {
 						if (solution.containsAllLiterals(l1, l2)) {
 							continue loop;
 						}
@@ -393,7 +391,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 			break;
 		case ADDED:
 		case UNCHANGED:
-			for (LiteralList strongEdge : oldMig.getDetectedStrong()) {
+			for (final LiteralList strongEdge : oldMig.getDetectedStrong()) {
 				final LiteralList adaptClause = strongEdge
 						.adapt(oldMig.getCnf().getVariableMap(), mig.getCnf().getVariableMap()).get();
 				if (adaptClause != null) {
@@ -408,8 +406,8 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 	}
 
 	protected void checkOldCoreLiterals(int[] coreDead) {
-		solver.setSelectionStrategy(fixedFeatures, true, true);
-		for (int literal : coreDead) {
+		solver.setSelectionStrategy(SStrategy.inverse(fixedFeatures));
+		for (final int literal : coreDead) {
 			final int varX = fixedFeatures[Math.abs(literal) - 1];
 			if (varX == 0) {
 				mig.getVertex(-literal).setStatus(Status.Normal);

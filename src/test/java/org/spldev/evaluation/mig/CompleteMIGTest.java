@@ -1,3 +1,5 @@
+package org.spldev.evaluation.mig;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -11,20 +13,20 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.Test;
+import org.spldev.evaluation.mig.BuildStatistic;
 import org.spldev.evaluation.mig.IncrementalMIGBuilder;
 import org.spldev.evaluation.mig.RegularMIGBuilder;
-import org.spldev.evaluation.mig.BuildStatistic;
-import org.spldev.evaluation.mig.XmlCNFFormat;
 import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.CNFFormatManager;
+import org.spldev.formula.clause.Clauses;
 import org.spldev.formula.clause.LiteralList;
-import org.spldev.formula.clause.io.DIMACSFormat;
 import org.spldev.formula.clause.mig.MIG;
 import org.spldev.formula.clause.mig.Vertex;
+import org.spldev.formula.clause.solver.SStrategy;
 import org.spldev.formula.clause.solver.Sat4JSolver;
 import org.spldev.formula.clause.solver.SatSolver;
 import org.spldev.formula.clause.solver.SatSolver.SatResult;
+import org.spldev.formula.expression.io.FormulaFormatManager;
+import org.spldev.util.extension.ExtensionLoader;
 import org.spldev.util.io.FileHandler;
 import org.spldev.util.job.DefaultMonitor;
 import org.spldev.util.job.Executor;
@@ -32,54 +34,48 @@ import org.spldev.util.job.UpdateThread;
 import org.spldev.util.logging.Logger;
 
 public class CompleteMIGTest {
+	static {
+		ExtensionLoader.load();
+	}
 
 //	@Test
 	public void test() {
-		CNFFormatManager.getInstance().addExtension(new XmlCNFFormat());
-		CNFFormatManager.getInstance().addExtension(new DIMACSFormat());
-		Path root = Paths.get("/home/sebas/Documents/Coding/spldev/evaluation-mig/models");
-		Path financialServices = root.resolve("FinancialServices01");
-		Path busybox = root.resolve("Busybox");
-		Path busyboxM = root.resolve("Busybox_monthlySnapshot");
-		Path automotive = root.resolve("Automotive02");
-
-//		Path model1 = financialServices.resolve("2017-05-22_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
-//		Path model2 = financialServices.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
-		Path model1 = financialServices.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
-		Path model2 = financialServices.resolve("2017-10-20_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
-//		Path model1 = busybox.resolve("2007-05-20_17-12-43/model.xml");
-//		Path model2 = busybox.resolve("2007-05-23_00-32-25/model.xml");
-//		Path model1 = busyboxM.resolve("2007-05-20_17-12-43/model.xml");
-//		Path model2 = busyboxM.resolve("2007-06-01_14-40-03/model.xml");
-//		Path model = busybox.resolve("2007-05-20_17-12-43/model.xml");
-//		Path model = automotive.resolve("Automotive02_V1/model.xml");
-
-		CNF cnf1 = FileHandler.parse(model1, CNFFormatManager.getInstance()).orElse(Logger::logProblems);
-		CNF cnf2 = FileHandler.parse(model2, CNFFormatManager.getInstance()).orElse(Logger::logProblems);
+		final Path root = Paths.get("models");
+		final Path financialServices = root.resolve("FinancialServices01");
+		final Path model1 = financialServices
+				.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
+		final Path model2 = financialServices
+				.resolve("2017-10-20_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
+		final CNF cnf1 = FileHandler.parse(model1, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+				.orElse(Logger::logProblems);
+		final CNF cnf2 = FileHandler.parse(model2, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+				.orElse(Logger::logProblems);
 
 		RegularMIGBuilder.statistic = new BuildStatistic();
 		DefaultMonitor monitor = new DefaultMonitor();
 		UpdateThread monitorLogger = Logger.startMonitorLogger(monitor);
-		MIG mig1 = Executor.run(new RegularMIGBuilder(), cnf1, monitor).orElse(Logger::logProblems);
+		final MIG mig1 = Executor.run(new RegularMIGBuilder(), cnf1, monitor).orElse(Logger::logProblems);
 		monitorLogger.finish();
 
-		BuildStatistic statistic = new BuildStatistic();
+		final BuildStatistic statistic = new BuildStatistic();
 
 		RegularMIGBuilder.statistic = statistic;
 		monitor = new DefaultMonitor();
 		monitorLogger = Logger.startMonitorLogger(monitor);
-		MIG mig2 = Executor.run(new RegularMIGBuilder(), cnf2, monitor).orElse(Logger::logProblems);
+		final MIG mig2 = Executor.run(new RegularMIGBuilder(), cnf2, monitor).orElse(Logger::logProblems);
 		monitorLogger.finish();
 
-		Logger.logInfo(("Init:    " + (statistic.time[BuildStatistic.timeFinishRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Core:    " + (statistic.time[BuildStatistic.timeCoreRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Clean:   " + (statistic.time[BuildStatistic.timeCleanRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Add1:    " + (statistic.time[BuildStatistic.timeFirstAddRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Strong1: " + (statistic.time[BuildStatistic.timeFirstStrongBfsRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Weak:    " + (statistic.time[BuildStatistic.timeWeakBfsRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Add2:    " + (statistic.time[BuildStatistic.timeSecondAddRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Strong2: " + (statistic.time[BuildStatistic.timeSecondStrongBfsRegular] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Finish:  " + (statistic.time[BuildStatistic.timeFinishRegular] / 1_000_000) / 1000.0));
+		Logger.logInfo(("Init:    " + ((statistic.time[BuildStatistic.timeFinishRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Core:    " + ((statistic.time[BuildStatistic.timeCoreRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Clean:   " + ((statistic.time[BuildStatistic.timeCleanRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Add1:    " + ((statistic.time[BuildStatistic.timeFirstAddRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(
+				("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Weak:    " + ((statistic.time[BuildStatistic.timeWeakBfsRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Add2:    " + ((statistic.time[BuildStatistic.timeSecondAddRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(
+				("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsRegular] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Finish:  " + ((statistic.time[BuildStatistic.timeFinishRegular] / 1_000_000) / 1000.0)));
 
 		long sum = statistic.time[BuildStatistic.timeFinishRegular] //
 				+ statistic.time[BuildStatistic.timeCoreRegular] //
@@ -97,18 +93,21 @@ public class CompleteMIGTest {
 		IncrementalMIGBuilder.statistic = statistic;
 		monitor = new DefaultMonitor();
 		monitorLogger = Logger.startMonitorLogger(monitor);
-		MIG mig3 = Executor.run(new IncrementalMIGBuilder(mig1), cnf2, monitor).orElse(Logger::logProblems);
+		final MIG mig3 = Executor.run(new IncrementalMIGBuilder(mig1), cnf2, monitor).orElse(Logger::logProblems);
 		monitorLogger.finish();
 
-		Logger.logInfo(("Init:    " + (statistic.time[BuildStatistic.timeFinishIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Core:    " + (statistic.time[BuildStatistic.timeCoreIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Clean:   " + (statistic.time[BuildStatistic.timeCleanIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Add1:    " + (statistic.time[BuildStatistic.timeFirstAddIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Strong1: " + (statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Weak:    " + (statistic.time[BuildStatistic.timeWeakBfsIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Add2:    " + (statistic.time[BuildStatistic.timeSecondAddIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Strong2: " + (statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] / 1_000_000) / 1000.0));
-		Logger.logInfo(("Finish:  " + (statistic.time[BuildStatistic.timeFinishIncremental] / 1_000_000) / 1000.0));
+		Logger.logInfo(("Init:    " + ((statistic.time[BuildStatistic.timeFinishIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Core:    " + ((statistic.time[BuildStatistic.timeCoreIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Clean:   " + ((statistic.time[BuildStatistic.timeCleanIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Add1:    " + ((statistic.time[BuildStatistic.timeFirstAddIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(
+				("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Weak:    " + ((statistic.time[BuildStatistic.timeWeakBfsIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(
+				("Add2:    " + ((statistic.time[BuildStatistic.timeSecondAddIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(
+				("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] / 1_000_000) / 1000.0)));
+		Logger.logInfo(("Finish:  " + ((statistic.time[BuildStatistic.timeFinishIncremental] / 1_000_000) / 1000.0)));
 
 		sum = statistic.time[BuildStatistic.timeFinishIncremental] //
 				+ statistic.time[BuildStatistic.timeCoreIncremental] //
@@ -122,12 +121,12 @@ public class CompleteMIGTest {
 
 		Logger.logInfo("------");
 		Logger.logInfo("Sum:     " + ((sum / 1_000_000) / 1000.0));
-		
+
 		Logger.logInfo("------");
 		final ListIterator<Vertex> it2 = mig2.getVertices().listIterator();
 		final ListIterator<Vertex> it3 = mig3.getVertices().listIterator();
-		
-		while(it2.hasNext()) {
+
+		while (it2.hasNext()) {
 			final Vertex v2 = it2.next();
 			final Vertex v3 = it3.next();
 			if (v2.getVar() != v3.getVar()) {
@@ -143,19 +142,19 @@ public class CompleteMIGTest {
 			}
 		}
 
-		Random random = new Random(1);
-		SatSolver solver = new Sat4JSolver(cnf2);
+		final Random random = new Random(1);
+		final SatSolver solver = new Sat4JSolver(cnf2);
 		solver.rememberSolutionHistory(0);
 
-		HashSet<Integer> coreSet = new HashSet<>();
-		for (Vertex vertex : mig2.getVertices()) {
+		final HashSet<Integer> coreSet = new HashSet<>();
+		for (final Vertex vertex : mig2.getVertices()) {
 			if (vertex.isCore()) {
 				coreSet.add(vertex.getVar());
 //				Logger.logDebug(vertex.getVar());
 			}
 		}
 
-		for (Vertex vertex : mig2.getVertices()) {
+		for (final Vertex vertex : mig2.getVertices()) {
 //			Logger.logDebug(vertex.getVar());
 			solver.assignmentClear(0);
 			switch (vertex.getStatus()) {
@@ -174,7 +173,7 @@ public class CompleteMIGTest {
 				final int[] firstSolution = solver.findSolution();
 				assertNotEquals(null, solver.findSolution());
 
-				solver.setSelectionStrategy(firstSolution, true, true);
+				solver.setSelectionStrategy(SStrategy.inverse(firstSolution));
 				LiteralList.resetConflicts(firstSolution, solver.findSolution());
 
 				// find core/dead features
@@ -200,12 +199,12 @@ public class CompleteMIGTest {
 				}
 
 				final List<Vertex> strongEdges = vertex.getStrongEdges();
-				HashSet<Integer> strongSet = new HashSet<>();
-				HashSet<Integer> impliesSet = new HashSet<>();
-				for (Vertex strongVertex : strongEdges) {
+				final HashSet<Integer> strongSet = new HashSet<>();
+				final HashSet<Integer> impliesSet = new HashSet<>();
+				for (final Vertex strongVertex : strongEdges) {
 					strongSet.add(strongVertex.getVar());
 				}
-				for (int implies : solver.getAssignmentArray()) {
+				for (final int implies : solver.getAssignmentArray()) {
 					impliesSet.add(implies);
 				}
 				impliesSet.remove(vertex.getVar());
@@ -220,8 +219,7 @@ public class CompleteMIGTest {
 			default:
 				fail();
 			}
-
 		}
-
 	}
+
 }

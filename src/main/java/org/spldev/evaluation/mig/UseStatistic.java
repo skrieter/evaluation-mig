@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * Evaluation-MIG - Program for the evalaution of building incremetnal MIGs.
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
  * Copyright (C) 2021  Sebastian Krieter
  * 
  * This file is part of Evaluation-MIG.

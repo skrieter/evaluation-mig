@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
- * Evaluation-MIG - Program for the evalaution of building incremetnal MIGs.
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
  * Copyright (C) 2021  Sebastian Krieter
  * 
  * This file is part of Evaluation-MIG.
@@ -43,7 +43,7 @@ public class BuildStatistic {
 	public static final int timeSecondAddIncremental = 15;
 	public static final int timeSecondStrongBfsIncremental = 16;
 	public static final int timeFinishIncremental = 17;
-	
+
 	public static final int addedClauses = 0;
 	public static final int removedClauses = 1;
 	public static final int sharedClauses = 2;
