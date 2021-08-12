@@ -1,7 +1,29 @@
+/* -----------------------------------------------------------------------------
+ * Evaluation-MIG - Program for the evaluation of building incremental MIGs.
+ * Copyright (C) 2021  Sebastian Krieter
+ * 
+ * This file is part of Evaluation-MIG.
+ * 
+ * Evaluation-MIG is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ * 
+ * Evaluation-MIG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Evaluation-MIG.  If not, see <https://www.gnu.org/licenses/>.
+ * 
+ * See <https://github.com/skrieter/evaluation-mig> for further information.
+ * -----------------------------------------------------------------------------
+ */
 package org.spldev.evaluation.mig;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.nio.file.Path;
@@ -13,19 +35,15 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.spldev.evaluation.mig.BuildStatistic;
-import org.spldev.evaluation.mig.IncrementalMIGBuilder;
-import org.spldev.evaluation.mig.RegularMIGBuilder;
-import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.Clauses;
-import org.spldev.formula.clause.LiteralList;
-import org.spldev.formula.clause.mig.MIG;
-import org.spldev.formula.clause.mig.Vertex;
-import org.spldev.formula.clause.solver.SStrategy;
-import org.spldev.formula.clause.solver.Sat4JSolver;
-import org.spldev.formula.clause.solver.SatSolver;
-import org.spldev.formula.clause.solver.SatSolver.SatResult;
+import org.spldev.formula.clauses.CNF;
+import org.spldev.formula.clauses.Clauses;
+import org.spldev.formula.clauses.LiteralList;
 import org.spldev.formula.expression.io.FormulaFormatManager;
+import org.spldev.formula.solver.SatSolver.SatResult;
+import org.spldev.formula.solver.mig.MIG;
+import org.spldev.formula.solver.mig.Vertex;
+import org.spldev.formula.solver.sat4j.SStrategy;
+import org.spldev.formula.solver.sat4j.Sat4JSolver;
 import org.spldev.util.extension.ExtensionLoader;
 import org.spldev.util.io.FileHandler;
 import org.spldev.util.job.DefaultMonitor;
@@ -46,9 +64,9 @@ public class CompleteMIGTest {
 				.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
 		final Path model2 = financialServices
 				.resolve("2017-10-20_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
-		final CNF cnf1 = FileHandler.parse(model1, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+		final CNF cnf1 = FileHandler.load(model1, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
 				.orElse(Logger::logProblems);
-		final CNF cnf2 = FileHandler.parse(model2, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+		final CNF cnf2 = FileHandler.load(model2, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
 				.orElse(Logger::logProblems);
 
 		RegularMIGBuilder.statistic = new BuildStatistic();
@@ -143,7 +161,7 @@ public class CompleteMIGTest {
 		}
 
 		final Random random = new Random(1);
-		final SatSolver solver = new Sat4JSolver(cnf2);
+		final Sat4JSolver solver = new Sat4JSolver(cnf2);
 		solver.rememberSolutionHistory(0);
 
 		final HashSet<Integer> coreSet = new HashSet<>();
@@ -156,42 +174,44 @@ public class CompleteMIGTest {
 
 		for (final Vertex vertex : mig2.getVertices()) {
 //			Logger.logDebug(vertex.getVar());
-			solver.assignmentClear(0);
+			solver.getAssumptions().clear(0);
 			switch (vertex.getStatus()) {
 			case Core:
-				solver.assignmentPush(-vertex.getVar());
+				solver.getAssumptions().push(-vertex.getVar());
 				assertEquals(null, solver.findSolution());
 //				Logger.logDebug("\tCore");
 				break;
 			case Dead:
-				solver.assignmentPush(vertex.getVar());
+				solver.getAssumptions().push(vertex.getVar());
 				assertEquals(null, solver.findSolution());
 //				Logger.logDebug("\tDead");
 				break;
 			case Normal:
-				solver.assignmentPush(vertex.getVar());
-				final int[] firstSolution = solver.findSolution();
-				assertNotEquals(null, solver.findSolution());
+				solver.getAssumptions().push(vertex.getVar());
+				final LiteralList solution = solver.findSolution();
+				assertNotNull(solution);
+				final int[] firstSolution = solution.getLiterals();
 
 				solver.setSelectionStrategy(SStrategy.inverse(firstSolution));
-				LiteralList.resetConflicts(firstSolution, solver.findSolution());
+				solver.hasSolution();
+				LiteralList.resetConflicts(firstSolution, solver.getInternalSolution());
 
 				// find core/dead features
 				for (int i = 0; i < firstSolution.length; i++) {
 					final int varX = firstSolution[i];
 					if (varX != 0) {
-						solver.assignmentPush(-varX);
+						solver.getAssumptions().push(-varX);
 						final SatResult hasSolution = solver.hasSolution();
 						switch (hasSolution) {
 						case FALSE:
-							solver.assignmentReplaceLast(varX);
+							solver.getAssumptions().replaceLast(varX);
 							break;
 						case TIMEOUT:
-							solver.assignmentPop();
+							solver.getAssumptions().pop();
 							break;
 						case TRUE:
-							solver.assignmentPop();
-							LiteralList.resetConflicts(firstSolution, solver.getSolution());
+							solver.getAssumptions().pop();
+							LiteralList.resetConflicts(firstSolution, solver.getInternalSolution());
 							solver.shuffleOrder(random);
 							break;
 						}
@@ -204,7 +224,7 @@ public class CompleteMIGTest {
 				for (final Vertex strongVertex : strongEdges) {
 					strongSet.add(strongVertex.getVar());
 				}
-				for (final int implies : solver.getAssignmentArray()) {
+				for (final int implies : solver.getAssumptions().asArray()) {
 					impliesSet.add(implies);
 				}
 				impliesSet.remove(vertex.getVar());

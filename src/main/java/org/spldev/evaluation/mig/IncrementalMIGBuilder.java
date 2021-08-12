@@ -30,18 +30,18 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.Clauses;
-import org.spldev.formula.clause.LiteralList;
-import org.spldev.formula.clause.LiteralList.Order;
-import org.spldev.formula.clause.mig.MIG;
-import org.spldev.formula.clause.mig.MIG.BuildStatus;
-import org.spldev.formula.clause.mig.Vertex;
-import org.spldev.formula.clause.mig.Vertex.Status;
-import org.spldev.formula.clause.solver.RuntimeContradictionException;
-import org.spldev.formula.clause.solver.SStrategy;
-import org.spldev.formula.clause.solver.Sat4JSolver;
+import org.spldev.formula.clauses.CNF;
+import org.spldev.formula.clauses.Clauses;
+import org.spldev.formula.clauses.LiteralList;
+import org.spldev.formula.clauses.LiteralList.Order;
 import org.spldev.formula.expression.atomic.literal.VariableMap;
+import org.spldev.formula.solver.RuntimeContradictionException;
+import org.spldev.formula.solver.mig.MIG;
+import org.spldev.formula.solver.mig.MIG.BuildStatus;
+import org.spldev.formula.solver.mig.Vertex;
+import org.spldev.formula.solver.mig.Vertex.Status;
+import org.spldev.formula.solver.sat4j.SStrategy;
+import org.spldev.formula.solver.sat4j.Sat4JSolver;
 import org.spldev.util.job.InternalMonitor;
 import org.spldev.util.job.MonitorableFunction;
 
@@ -157,7 +157,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 	public static double getChangeRatio(CNF cnf1, CNF cnf2) {
 		final Set<String> allVariables = new HashSet<>(cnf2.getVariableMap().getNames());
 		allVariables.addAll(cnf1.getVariableMap().getNames());
-		final VariableMap variables = new VariableMap(allVariables);
+		final VariableMap variables = VariableMap.fromNames(allVariables);
 
 		final HashSet<LiteralList> adaptedNewClauses = cnf1.getClauses().stream()
 				.map(c -> c.adapt(cnf1.getVariableMap(), variables).get()) //
@@ -186,7 +186,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		final CNF oldCnf = oldMig.getCnf();
 		final Set<String> allVariables = new HashSet<>(oldCnf.getVariableMap().getNames());
 		allVariables.addAll(cnf.getVariableMap().getNames());
-		variables = new VariableMap(allVariables);
+		variables = VariableMap.fromNames(allVariables);
 
 		final HashSet<LiteralList> adaptedNewClauses = cnf.getClauses().stream()
 				.map(c -> c.adapt(cnf.getVariableMap(), variables).get()) //
@@ -235,7 +235,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 		switch (changes) {
 		case ADDED:
 			for (final int literal : coreDead) {
-				solver.assignmentPush(literal);
+				solver.getAssumptions().push(literal);
 				fixedFeatures[Math.abs(literal) - 1] = 0;
 			}
 			findCoreFeatures(monitor);
@@ -292,7 +292,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 							return !isRedundant(redundancySolver, c);
 						}
 						return true;
-					}).peek(redundancySolver::addClause);
+					}).peek(redundancySolver.getFormula()::push);
 				} else {
 					cnfStream = cnfStream.sorted(lengthComparator).distinct()
 							.filter(c -> (c.size() < 3) || !redundantClauses.contains(c));
@@ -310,7 +310,7 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 						return !isRedundant(redundancySolver, c);
 					}
 					return true;
-				}).peek(redundancySolver::addClause);
+				}).peek(redundancySolver.getFormula()::push);
 				mig.setRedundancyStatus(mig.getRedundancyStatus());
 				break;
 			}
@@ -331,12 +331,12 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 							}
 							return true;
 						}
-					}).peek(redundancySolver::addClause);
+					}).peek(redundancySolver.getFormula()::push);
 				} else {
 					final Sat4JSolver redundancySolver = new Sat4JSolver(new CNF(variables));
 					cnfStream = cnfStream.sorted(lengthComparator).distinct().filter(
 							c -> (c.size() < 3) || !redundantClauses.contains(c) || !isRedundant(redundancySolver, c))
-							.peek(redundancySolver::addClause);
+							.peek(redundancySolver.getFormula()::push);
 				}
 				mig.setRedundancyStatus(BuildStatus.Incremental);
 				break;
@@ -374,8 +374,8 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 							continue loop;
 						}
 					}
-					solver.assignmentPush(l1);
-					solver.assignmentPush(l2);
+					solver.getAssumptions().push(l1);
+					solver.getAssumptions().push(l2);
 					switch (solver.hasSolution()) {
 					case FALSE:
 						cleanedClausesList.add(adaptClause);
@@ -384,8 +384,8 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 					case TRUE:
 						break;
 					}
-					solver.assignmentPop();
-					solver.assignmentPop();
+					solver.getAssumptions().pop();
+					solver.getAssumptions().pop();
 				}
 			}
 			break;
@@ -413,24 +413,24 @@ public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunc
 				mig.getVertex(-literal).setStatus(Status.Normal);
 				mig.getVertex(literal).setStatus(Status.Normal);
 			} else {
-				solver.assignmentPush(-varX);
+				solver.getAssumptions().push(-varX);
 				switch (solver.hasSolution()) {
 				case FALSE:
-					solver.assignmentReplaceLast(varX);
+					solver.getAssumptions().replaceLast(varX);
 					mig.getVertex(varX).setStatus(Status.Core);
 					mig.getVertex(-varX).setStatus(Status.Dead);
 					break;
 				case TIMEOUT:
-					solver.assignmentPop();
+					solver.getAssumptions().pop();
 					fixedFeatures[Math.abs(literal) - 1] = 0;
 					mig.getVertex(-varX).setStatus(Status.Normal);
 					mig.getVertex(varX).setStatus(Status.Normal);
 					break;
 				case TRUE:
-					solver.assignmentPop();
+					solver.getAssumptions().pop();
 					mig.getVertex(-varX).setStatus(Status.Normal);
 					mig.getVertex(varX).setStatus(Status.Normal);
-					LiteralList.resetConflicts(fixedFeatures, solver.getSolution());
+					LiteralList.resetConflicts(fixedFeatures, solver.getInternalSolution());
 					solver.shuffleOrder(random);
 					break;
 				}

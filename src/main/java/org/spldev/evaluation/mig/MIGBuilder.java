@@ -33,16 +33,15 @@ import java.util.Random;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.LiteralList;
-import org.spldev.formula.clause.LiteralList.Order;
-import org.spldev.formula.clause.mig.MIG;
-import org.spldev.formula.clause.mig.Vertex;
-import org.spldev.formula.clause.mig.Vertex.Status;
-import org.spldev.formula.clause.solver.SStrategy;
-import org.spldev.formula.clause.solver.Sat4JSolver;
-import org.spldev.formula.clause.solver.SatSolver;
-import org.spldev.formula.clause.solver.SatSolver.SatResult;
+import org.spldev.formula.clauses.CNF;
+import org.spldev.formula.clauses.LiteralList;
+import org.spldev.formula.clauses.LiteralList.Order;
+import org.spldev.formula.solver.SatSolver.SatResult;
+import org.spldev.formula.solver.mig.MIG;
+import org.spldev.formula.solver.mig.Vertex;
+import org.spldev.formula.solver.mig.Vertex.Status;
+import org.spldev.formula.solver.sat4j.SStrategy;
+import org.spldev.formula.solver.sat4j.Sat4JSolver;
 import org.spldev.util.job.InternalMonitor;
 
 /**
@@ -63,7 +62,7 @@ public class MIGBuilder {
 	protected boolean checkRedundancy = true;
 	protected boolean detectStrong = true;
 
-	protected SatSolver solver;
+	protected Sat4JSolver solver;
 	protected List<LiteralList> cleanedClausesList;
 	protected int[] fixedFeatures;
 
@@ -76,8 +75,13 @@ public class MIGBuilder {
 	protected boolean satCheck(CNF cnf) {
 		solver = new Sat4JSolver(cnf);
 		solver.rememberSolutionHistory(1000);
-		fixedFeatures = solver.findSolution();
-		return fixedFeatures != null;
+		if (solver.hasSolution() == SatResult.TRUE) {
+			fixedFeatures = solver.getSolution().getLiterals();
+			return true;
+		} else {
+			fixedFeatures = null;
+			return false;
+		}
 	}
 
 	protected void findCoreFeatures(InternalMonitor monitor) {
@@ -89,20 +93,20 @@ public class MIGBuilder {
 		for (int i = 0; i < fixedFeatures.length; i++) {
 			final int varX = fixedFeatures[i];
 			if (varX != 0) {
-				solver.assignmentPush(-varX);
+				solver.getAssumptions().push(-varX);
 				final SatResult hasSolution = solver.hasSolution();
 				switch (hasSolution) {
 				case FALSE:
-					solver.assignmentReplaceLast(varX);
+					solver.getAssumptions().replaceLast(varX);
 					mig.getVertex(-varX).setStatus(Status.Dead);
 					mig.getVertex(varX).setStatus(Status.Core);
 					break;
 				case TIMEOUT:
-					solver.assignmentPop();
+					solver.getAssumptions().pop();
 					break;
 				case TRUE:
-					solver.assignmentPop();
-					LiteralList.resetConflicts(fixedFeatures, solver.getSolution());
+					solver.getAssumptions().pop();
+					LiteralList.resetConflicts(fixedFeatures, solver.getInternalSolution());
 					solver.shuffleOrder(random);
 					break;
 				}
@@ -120,7 +124,7 @@ public class MIGBuilder {
 			stream = stream.sorted(lengthComparator).distinct().peek(c -> monitor.step()).filter(clause -> //
 			(clause.getLiterals().length < 3) //
 					|| !isRedundant(newSolver, clause)) //
-					.peek(newSolver::addClause); //
+					.peek(newSolver.getFormula()::push); //
 		} else {
 			stream = stream.distinct().peek(c -> monitor.step());
 		}
@@ -248,7 +252,7 @@ public class MIGBuilder {
 		return new LiteralList(literalArray, Order.NATURAL);
 	}
 
-	protected final boolean isRedundant(SatSolver solver, LiteralList curClause) {
+	protected final boolean isRedundant(Sat4JSolver solver, LiteralList curClause) {
 		return solver.hasSolution(curClause.negate()) == SatResult.FALSE;
 	}
 
@@ -290,7 +294,7 @@ public class MIGBuilder {
 		final ArrayList<Integer> literals = new ArrayList<>();
 		final boolean[] mark = new boolean[mig.size() + 1];
 		final int[] fixed = new int[mig.size() + 1];
-		final int orgSize = solver.getAssignmentSize();
+		final int orgSize = solver.getAssumptions().size();
 		solver.setSelectionStrategy(SStrategy.original());
 		for (final Vertex vertex : mig.getVertices()) {
 			if (vertex.isNormal() && ((affectedVariables == null)
@@ -311,12 +315,12 @@ public class MIGBuilder {
 					}
 				}
 
-				solver.assignmentPush(var);
+				solver.getAssumptions().push(var);
 				fixed[Math.abs(var)] = var;
 				mark[Math.abs(var)] = true;
 				for (final Vertex strongVertex : vertex.getStrongEdges()) {
 					final int strongVar = strongVertex.getVar();
-					solver.assignmentPush(strongVar);
+					solver.getAssumptions().push(strongVar);
 					final int index = Math.abs(strongVar);
 					fixed[index] = strongVar;
 					mark[index] = true;
@@ -328,8 +332,7 @@ public class MIGBuilder {
 						.forEach(literals::add);
 
 				if (model == null) {
-					final int[] solution = solver.findSolution();
-					model = Arrays.copyOf(solution, solution.length);
+					model = solver.findSolution().getLiterals();
 				}
 				solver.setSelectionStrategy(SStrategy.inverse(model));
 
@@ -348,10 +351,10 @@ public class MIGBuilder {
 					final int varX = model[Math.abs(curVertex.getVar()) - 1];
 					if (varX != 0) {
 						curVertex = mig.getVertex(varX);
-						solver.assignmentPush(-varX);
+						solver.getAssumptions().push(-varX);
 						switch (solver.hasSolution()) {
 						case FALSE:
-							solver.assignmentReplaceLast(varX);
+							solver.getAssumptions().replaceLast(varX);
 							fixed[Math.abs(varX)] = varX;
 							final LiteralList literalList = new LiteralList(negVar, varX);
 							cleanedClausesList.add(literalList);
@@ -360,7 +363,7 @@ public class MIGBuilder {
 								final int index = Math.abs(strongVertex.getVar());
 								mark[index] = true;
 								if (fixed[index] == 0) {
-									solver.assignmentPush(strongVertex.getVar());
+									solver.getAssumptions().push(strongVertex.getVar());
 									fixed[index] = strongVertex.getVar();
 								}
 								strongVertex.getComplexClauses().stream()
@@ -368,12 +371,13 @@ public class MIGBuilder {
 							}
 							break;
 						case TIMEOUT:
-							solver.assignmentPop();
+							solver.getAssumptions().pop();
 							curVertex.getStrongEdges().stream().map(Vertex::getVar).forEach(literals::add);
 							break;
 						case TRUE:
-							solver.assignmentPop();
-							LiteralList.resetConflicts(model, solver.getSolution());
+							solver.getAssumptions().pop();
+							solver.hasSolution();
+							LiteralList.resetConflicts(model, solver.getInternalSolution());
 							solver.shuffleOrder(random);
 							curVertex.getStrongEdges().stream().map(Vertex::getVar).forEach(literals::add);
 
@@ -411,7 +415,7 @@ public class MIGBuilder {
 					literals.clear();
 				}
 			}
-			solver.assignmentClear(orgSize);
+			solver.getAssumptions().clear(orgSize);
 			monitor.step();
 		}
 		for (final Vertex vertex : mig.getVertices()) {

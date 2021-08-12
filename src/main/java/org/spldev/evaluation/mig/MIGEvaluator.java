@@ -37,14 +37,15 @@ import java.util.stream.IntStream;
 import org.spldev.evaluation.Evaluator;
 import org.spldev.evaluation.properties.ListProperty;
 import org.spldev.evaluation.properties.Property;
-import org.spldev.formula.clause.CNF;
-import org.spldev.formula.clause.Clauses;
-import org.spldev.formula.clause.LiteralList;
-import org.spldev.formula.clause.analysis.ConditionallyCoreDeadAnalysisMIG;
-import org.spldev.formula.clause.analysis.CoreDeadAnalysis;
-import org.spldev.formula.clause.mig.MIG;
-import org.spldev.formula.clause.mig.Vertex;
+import org.spldev.formula.analysis.mig.ConditionallyCoreDeadAnalysisMIG;
+import org.spldev.formula.analysis.sat4j.CoreDeadAnalysis;
+import org.spldev.formula.clauses.CNF;
+import org.spldev.formula.clauses.Clauses;
+import org.spldev.formula.clauses.LiteralList;
 import org.spldev.formula.expression.io.FormulaFormatManager;
+import org.spldev.formula.solver.mig.MIG;
+import org.spldev.formula.solver.mig.Sat4JMIGSolver;
+import org.spldev.formula.solver.mig.Vertex;
 import org.spldev.util.io.FileHandler;
 import org.spldev.util.io.csv.CSVWriter;
 import org.spldev.util.job.Executor;
@@ -121,8 +122,8 @@ public class MIGEvaluator extends Evaluator {
 
 			final int systemIndexEnd = config.systemNames.size();
 
-			for (systemID = 0; systemID < systemIndexEnd; systemID++) {
-				final String systemName = config.systemNames.get(systemID);
+			for (systemIndex = 0; systemIndex < systemIndexEnd; systemIndex++) {
+				final String systemName = config.systemNames.get(systemIndex);
 				logSystem();
 				try {
 					final Path modelHistoryPath = root.resolve(systemName);
@@ -348,7 +349,7 @@ public class MIGEvaluator extends Evaluator {
 		cnfs = new ArrayList<>();
 		Files.walk(modelHistoryPath).filter(Files::isRegularFile).sorted(Comparator.comparing(Path::toString))
 				.peek(p -> Logger.logInfo("Load " + root.relativize(p).toString())).peek(modelPaths::add)
-				.map(p -> FileHandler.parse(p, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+				.map(p -> FileHandler.load(p, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
 						.orElse(Logger::logProblems))
 				.filter(cnf2 -> {
 					if (cnf2 == null) {
@@ -413,9 +414,10 @@ public class MIGEvaluator extends Evaluator {
 		int breakCount = 0;
 		for (final Vertex vertex : mig.getVertices()) {
 			if (vertex.isNormal()) {
-				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
+				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG();
+				incAnalysis.setSolver(new Sat4JMIGSolver(mig, cnf));
 				incAnalysis.setFixedFeatures(new int[] { vertex.getVar() }, 1);
-				Executor.run(incAnalysis, cnf);
+				Executor.run(incAnalysis::execute);
 				if (++breakCount == 10) {
 					break;
 				}
@@ -427,9 +429,10 @@ public class MIGEvaluator extends Evaluator {
 			if (mig.getVertex(literal).isNormal()) {
 				System.gc();
 				start = System.nanoTime();
-				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG(mig);
+				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG();
+				incAnalysis.setSolver(new Sat4JMIGSolver(mig, cnf));
 				incAnalysis.setFixedFeatures(new int[] { literal }, 1);
-				Executor.run(incAnalysis, cnf);
+				Executor.run(incAnalysis::execute);
 				end = System.nanoTime();
 				final long diff = end - start;
 				writeCSV(csvWriter2, w -> writeUsageStatistic(w, 0, literal, diff, versionID1, versionID2));
@@ -442,7 +445,7 @@ public class MIGEvaluator extends Evaluator {
 		for (int i = 2; i <= cnf.getVariableMap().size(); i++) {
 			final CoreDeadAnalysis incAnalysis1 = new CoreDeadAnalysis();
 			incAnalysis1.setAssumptions(new LiteralList(i));
-			Executor.run(incAnalysis1, cnf);
+			Executor.run(incAnalysis1::execute, cnf);
 			if (++breakCount == 10) {
 				break;
 			}
@@ -454,7 +457,7 @@ public class MIGEvaluator extends Evaluator {
 			start = System.nanoTime();
 			final CoreDeadAnalysis incAnalysis = new CoreDeadAnalysis();
 			incAnalysis.setAssumptions(new LiteralList(literal));
-			Executor.run(incAnalysis, cnf);
+			Executor.run(incAnalysis::execute, cnf);
 			end = System.nanoTime();
 			final long diff = end - start;
 			writeCSV(csvWriter2, w -> writeUsageStatistic(w, 0, literal, diff, versionID1, versionID2));
@@ -560,8 +563,8 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	private void writeModelStatistic(CSVWriter csvWriter) {
-		csvWriter.addValue(config.systemIDs.get(systemID));
-		csvWriter.addValue(config.systemNames.get(systemID));
+		csvWriter.addValue(config.systemIDs.get(systemIndex));
+		csvWriter.addValue(config.systemNames.get(systemIndex));
 	}
 
 	private void writeAlgorithmStatistic(CSVWriter csvWriter) {
@@ -579,14 +582,14 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	private void writeVersionStatistic(CSVWriter csvWriter, int versionID, String name) {
-		csvWriter.addValue(config.systemIDs.get(systemID));
+		csvWriter.addValue(config.systemIDs.get(systemIndex));
 		csvWriter.addValue(versionID);
 		csvWriter.addValue(name);
 	}
 
 	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1,
 			int versionID2) {
-		csvWriter.addValue(config.systemIDs.get(systemID));
+		csvWriter.addValue(config.systemIDs.get(systemIndex));
 		csvWriter.addValue(systemIteration);
 		csvWriter.addValue(algorithmID);
 		csvWriter.addValue(versionID1);
@@ -597,7 +600,7 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	private void writeStatistic(CSVWriter csvWriter, BuildStatistic statistic, int versionID1, int versionID2) {
-		csvWriter.addValue(config.systemIDs.get(systemID));
+		csvWriter.addValue(config.systemIDs.get(systemIndex));
 		csvWriter.addValue(systemIteration);
 		csvWriter.addValue(algorithmID);
 		csvWriter.addValue(versionID1);
