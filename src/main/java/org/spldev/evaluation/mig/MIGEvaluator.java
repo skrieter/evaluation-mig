@@ -77,26 +77,13 @@ public class MIGEvaluator extends Evaluator {
 	private List<Path> modelPaths;
 	private List<CNF> cnfs;
 
-	public MIGEvaluator(String configPath, String configName) throws Exception {
-		super(configPath, configName);
-	}
-
-	public static void main(String[] args) throws Exception {
-		if (args.length != 1) {
-			System.out.println("Configuration path not specified!");
-			return;
-		}
-
-		final MIGEvaluator evaluator = new MIGEvaluator(args[0], "config");
-		evaluator.init();
-		evaluator.run();
-		evaluator.dispose();
+	@Override
+	public String getId() {
+		return "eval-mig-builder";
 	}
 
 	@Override
-	public void run() {
-		super.run();
-
+	public void evaluate() {
 		randomConfigsValue = randomConfigsProperty.getValue();
 		randomConfigSplitsValue = randomConfigSplitsProperty.getValue();
 		randomLiteralsValue = randomLiteralsProperty.getValue();

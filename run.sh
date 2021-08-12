@@ -1,7 +1,6 @@
 #! /bin/bash
-JAR=mig-evaluation.jar
-MAINCLASS=org.spldev.evaluation.mig.MIGEvaluator
+JAR=evaluation-mig-1.0-SNAPSHOT-combined.jar
 
-java -jar ${JAR} org.spldev.evaluation.OutputCleaner config
+java -jar ${JAR} eval-clean config
 
-java -da -Xmx12g -jar ${JAR} ${MAINCLASS} config
+java -da -Xmx12g -jar ${JAR} eval-mig-builder config
