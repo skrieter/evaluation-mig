@@ -22,27 +22,16 @@
  */
 package org.spldev.evaluation.mig;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.*;
 
-import org.spldev.formula.clauses.CNF;
-import org.spldev.formula.clauses.LiteralList;
-import org.spldev.formula.clauses.LiteralList.Order;
-import org.spldev.formula.solver.SatSolver.SatResult;
-import org.spldev.formula.solver.mig.MIG;
-import org.spldev.formula.solver.mig.Vertex;
-import org.spldev.formula.solver.mig.Vertex.Status;
-import org.spldev.formula.solver.sat4j.SStrategy;
-import org.spldev.formula.solver.sat4j.Sat4JSolver;
-import org.spldev.util.job.InternalMonitor;
+import org.spldev.formula.clauses.*;
+import org.spldev.formula.clauses.LiteralList.*;
+import org.spldev.formula.solver.SatSolver.*;
+import org.spldev.formula.solver.mig.*;
+import org.spldev.formula.solver.mig.Vertex.*;
+import org.spldev.formula.solver.sat4j.*;
+import org.spldev.util.job.*;
 
 /**
  * Adjacency matrix implementation for a feature graph.

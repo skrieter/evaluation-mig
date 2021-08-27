@@ -22,34 +22,22 @@
  */
 package org.spldev.evaluation.mig;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.stream.IntStream;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.*;
 
-import org.spldev.evaluation.Evaluator;
-import org.spldev.evaluation.properties.ListProperty;
-import org.spldev.evaluation.properties.Property;
-import org.spldev.formula.analysis.mig.ConditionallyCoreDeadAnalysisMIG;
-import org.spldev.formula.analysis.sat4j.CoreDeadAnalysis;
-import org.spldev.formula.clauses.CNF;
-import org.spldev.formula.clauses.Clauses;
-import org.spldev.formula.clauses.LiteralList;
-import org.spldev.formula.expression.io.FormulaFormatManager;
-import org.spldev.formula.solver.mig.MIG;
-import org.spldev.formula.solver.mig.Sat4JMIGSolver;
-import org.spldev.formula.solver.mig.Vertex;
-import org.spldev.util.io.FileHandler;
-import org.spldev.util.io.csv.CSVWriter;
-import org.spldev.util.job.Executor;
-import org.spldev.util.logging.Logger;
+import org.spldev.evaluation.*;
+import org.spldev.evaluation.properties.*;
+import org.spldev.formula.analysis.mig.*;
+import org.spldev.formula.analysis.sat4j.*;
+import org.spldev.formula.clauses.*;
+import org.spldev.formula.expression.io.*;
+import org.spldev.formula.solver.mig.*;
+import org.spldev.util.io.*;
+import org.spldev.util.io.csv.*;
+import org.spldev.util.job.*;
+import org.spldev.util.logging.*;
 
 public class MIGEvaluator extends Evaluator {
 

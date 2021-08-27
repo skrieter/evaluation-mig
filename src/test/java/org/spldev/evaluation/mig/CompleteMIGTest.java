@@ -22,34 +22,21 @@
  */
 package org.spldev.evaluation.mig;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Objects;
-import java.util.Random;
-import java.util.stream.Collectors;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.*;
 
-import org.spldev.formula.clauses.CNF;
-import org.spldev.formula.clauses.Clauses;
-import org.spldev.formula.clauses.LiteralList;
-import org.spldev.formula.expression.io.FormulaFormatManager;
-import org.spldev.formula.solver.SatSolver.SatResult;
-import org.spldev.formula.solver.mig.MIG;
-import org.spldev.formula.solver.mig.Vertex;
-import org.spldev.formula.solver.sat4j.SStrategy;
-import org.spldev.formula.solver.sat4j.Sat4JSolver;
-import org.spldev.util.extension.ExtensionLoader;
-import org.spldev.util.io.FileHandler;
-import org.spldev.util.job.DefaultMonitor;
-import org.spldev.util.job.Executor;
-import org.spldev.util.job.UpdateThread;
-import org.spldev.util.logging.Logger;
+import org.spldev.formula.clauses.*;
+import org.spldev.formula.expression.io.*;
+import org.spldev.formula.solver.SatSolver.*;
+import org.spldev.formula.solver.mig.*;
+import org.spldev.formula.solver.sat4j.*;
+import org.spldev.util.extension.*;
+import org.spldev.util.io.*;
+import org.spldev.util.job.*;
+import org.spldev.util.logging.*;
 
 public class CompleteMIGTest {
 	static {

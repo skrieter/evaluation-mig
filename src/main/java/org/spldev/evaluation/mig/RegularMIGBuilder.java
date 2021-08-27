@@ -22,13 +22,11 @@
  */
 package org.spldev.evaluation.mig;
 
-import org.spldev.formula.clauses.CNF;
-import org.spldev.formula.solver.RuntimeContradictionException;
-import org.spldev.formula.solver.mig.MIG;
-import org.spldev.formula.solver.mig.MIG.BuildStatus;
-import org.spldev.formula.solver.mig.Vertex;
-import org.spldev.util.job.InternalMonitor;
-import org.spldev.util.job.MonitorableFunction;
+import org.spldev.formula.clauses.*;
+import org.spldev.formula.solver.*;
+import org.spldev.formula.solver.mig.*;
+import org.spldev.formula.solver.mig.MIG.*;
+import org.spldev.util.job.*;
 
 /**
  * Adjacency matrix implementation for a feature graph.

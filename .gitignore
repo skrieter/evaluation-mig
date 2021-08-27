@@ -3,4 +3,7 @@ target/
 .settings/
 .project
 .classpath
-/dependency-reduced-pom.xml
+dependency-reduced-pom.xml
+misc/
+results/
+evaluation-mig-1.0-SNAPSHOT-combined.jar

@@ -22,28 +22,18 @@
  */
 package org.spldev.evaluation.mig;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.*;
 
-import org.spldev.formula.clauses.CNF;
-import org.spldev.formula.clauses.Clauses;
-import org.spldev.formula.clauses.LiteralList;
-import org.spldev.formula.clauses.LiteralList.Order;
-import org.spldev.formula.expression.atomic.literal.VariableMap;
-import org.spldev.formula.solver.RuntimeContradictionException;
-import org.spldev.formula.solver.mig.MIG;
-import org.spldev.formula.solver.mig.MIG.BuildStatus;
-import org.spldev.formula.solver.mig.Vertex;
-import org.spldev.formula.solver.mig.Vertex.Status;
-import org.spldev.formula.solver.sat4j.SStrategy;
-import org.spldev.formula.solver.sat4j.Sat4JSolver;
-import org.spldev.util.job.InternalMonitor;
-import org.spldev.util.job.MonitorableFunction;
+import org.spldev.formula.clauses.*;
+import org.spldev.formula.clauses.LiteralList.*;
+import org.spldev.formula.expression.atomic.literal.*;
+import org.spldev.formula.solver.*;
+import org.spldev.formula.solver.mig.*;
+import org.spldev.formula.solver.mig.MIG.*;
+import org.spldev.formula.solver.mig.Vertex.*;
+import org.spldev.formula.solver.sat4j.*;
+import org.spldev.util.job.*;
 
 public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunction<CNF, MIG> {
 
