@@ -101,11 +101,11 @@ public class RegularMIGBuilder extends MIGBuilder implements MonitorableFunction
 		end = System.nanoTime();
 		statistic.time[BuildStatistic.timeFinishRegular] = end - start;
 		statistic.data[BuildStatistic.coreRegular] = (int) mig.getVertices().stream().filter(v -> !v.isNormal())
-				.count();
+			.count();
 		statistic.data[BuildStatistic.strongRegular] = (int) mig.getVertices().stream().filter(Vertex::isNormal)
-				.flatMap(v -> v.getStrongEdges().stream()).count();
+			.flatMap(v -> v.getStrongEdges().stream()).count();
 		statistic.data[BuildStatistic.weakRegular] = mig.getVertices().stream()
-				.flatMap(v -> v.getComplexClauses().stream()).mapToInt(c -> c.size() - 1).sum();
+			.flatMap(v -> v.getComplexClauses().stream()).mapToInt(c -> c.size() - 1).sum();
 
 		return mig;
 	}

@@ -42,13 +42,13 @@ import org.spldev.util.logging.*;
 public class MIGEvaluator extends Evaluator {
 
 	protected static final ListProperty<String> settingsProperty = new ListProperty<>("settings",
-			Property.StringConverter);
+		Property.StringConverter);
 	protected static final Property<Integer> randomConfigsProperty = new Property<>("random_configs",
-			Property.IntegerConverter);
+		Property.IntegerConverter);
 	protected static final Property<Integer> randomConfigSplitsProperty = new Property<>("random_config_splits",
-			Property.IntegerConverter);
+		Property.IntegerConverter);
 	protected static final Property<Integer> randomLiteralsProperty = new Property<>("random_literals",
-			Property.IntegerConverter, 100);
+		Property.IntegerConverter, 100);
 
 	private static Path root = Paths.get("models");
 
@@ -111,7 +111,7 @@ public class MIGEvaluator extends Evaluator {
 					}
 					tabFormatter.setTabLevel(2);
 					for (systemIteration = 1; systemIteration <= config.systemIterations
-							.getValue(); systemIteration++) {
+						.getValue(); systemIteration++) {
 						algorithmID = 0;
 						logSystemRun();
 						for (final String settingsValue : settingsProperty.getValue()) {
@@ -188,7 +188,7 @@ public class MIGEvaluator extends Evaluator {
 				final Path path2 = modelPaths.get(i);
 				final CNF cnf2 = cnfs.get(i);
 				Logger.logInfo("Build accumulative " + (i + 1) + "/" + modelPaths.size() + ": "
-						+ root.relativize(path2).toString());
+					+ root.relativize(path2).toString());
 
 				final BuildStatistic statistic = accStatistics[i - 1];
 				IncrementalMIGBuilder.statistic = statistic;
@@ -263,7 +263,7 @@ public class MIGEvaluator extends Evaluator {
 			final CNF cnf1 = cnfs.get(i);
 
 			Logger.logInfo(
-					"Build Reg MIG " + (i + 1) + "/" + modelPaths.size() + ": " + root.relativize(path1).toString());
+				"Build Reg MIG " + (i + 1) + "/" + modelPaths.size() + ": " + root.relativize(path1).toString());
 
 			final BuildStatistic curBuildStatistic = new BuildStatistic();
 			RegularMIGBuilder.statistic = curBuildStatistic;
@@ -323,26 +323,26 @@ public class MIGEvaluator extends Evaluator {
 		modelPaths = new ArrayList<>();
 		cnfs = new ArrayList<>();
 		Files.walk(modelHistoryPath).filter(Files::isRegularFile).sorted(Comparator.comparing(Path::toString))
-				.peek(p -> Logger.logInfo("Load " + root.relativize(p).toString())).peek(modelPaths::add)
-				.map(p -> FileHandler.load(p, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
-						.orElse(Logger::logProblems))
-				.filter(cnf2 -> {
-					if (cnf2 == null) {
+			.peek(p -> Logger.logInfo("Load " + root.relativize(p).toString())).peek(modelPaths::add)
+			.map(p -> FileHandler.load(p, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
+				.orElse(Logger::logProblems))
+			.filter(cnf2 -> {
+				if (cnf2 == null) {
+					modelPaths.remove(modelPaths.size() - 1);
+					return false;
+				}
+				return true;
+			}).peek(cnfs::add).filter(cnf2 -> {
+				if (cnfs.size() > 1) {
+					final CNF cnf1 = cnfs.get(cnfs.size() - 2);
+					if (IncrementalMIGBuilder.getChangeRatio(cnf1, cnf2) == 0) {
+						cnfs.remove(cnfs.size() - 1);
 						modelPaths.remove(modelPaths.size() - 1);
 						return false;
 					}
-					return true;
-				}).peek(cnfs::add).filter(cnf2 -> {
-					if (cnfs.size() > 1) {
-						final CNF cnf1 = cnfs.get(cnfs.size() - 2);
-						if (IncrementalMIGBuilder.getChangeRatio(cnf1, cnf2) == 0) {
-							cnfs.remove(cnfs.size() - 1);
-							modelPaths.remove(modelPaths.size() - 1);
-							return false;
-						}
-					}
-					return true;
-				}).count();
+				}
+				return true;
+			}).count();
 	}
 
 	private MIG computeRegMig(final CNF cnf) {
@@ -390,7 +390,7 @@ public class MIGEvaluator extends Evaluator {
 		for (final Vertex vertex : mig.getVertices()) {
 			if (vertex.isNormal()) {
 				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG();
-				incAnalysis.setSolver(new Sat4JMIGSolver(mig, cnf));
+				incAnalysis.setSolver(new Sat4JMIGSolver(mig));
 				incAnalysis.setFixedFeatures(new int[] { vertex.getVar() }, 1);
 				Executor.run(incAnalysis::execute);
 				if (++breakCount == 10) {
@@ -405,7 +405,7 @@ public class MIGEvaluator extends Evaluator {
 				System.gc();
 				start = System.nanoTime();
 				final ConditionallyCoreDeadAnalysisMIG incAnalysis = new ConditionallyCoreDeadAnalysisMIG();
-				incAnalysis.setSolver(new Sat4JMIGSolver(mig, cnf));
+				incAnalysis.setSolver(new Sat4JMIGSolver(mig));
 				incAnalysis.setFixedFeatures(new int[] { literal }, 1);
 				Executor.run(incAnalysis::execute);
 				end = System.nanoTime();
@@ -419,7 +419,7 @@ public class MIGEvaluator extends Evaluator {
 		int breakCount = 0;
 		for (int i = 2; i <= cnf.getVariableMap().size(); i++) {
 			final CoreDeadAnalysis incAnalysis1 = new CoreDeadAnalysis();
-			incAnalysis1.setAssumptions(new LiteralList(i));
+			incAnalysis1.getAssumptions().set(i, true);
 			Executor.run(incAnalysis1::execute, cnf);
 			if (++breakCount == 10) {
 				break;
@@ -431,7 +431,7 @@ public class MIGEvaluator extends Evaluator {
 			System.gc();
 			start = System.nanoTime();
 			final CoreDeadAnalysis incAnalysis = new CoreDeadAnalysis();
-			incAnalysis.setAssumptions(new LiteralList(literal));
+			incAnalysis.getAssumptions().set(Math.abs(literal), literal > 0);
 			Executor.run(incAnalysis::execute, cnf);
 			end = System.nanoTime();
 			final long diff = end - start;
@@ -510,31 +510,31 @@ public class MIGEvaluator extends Evaluator {
 	protected void addCSVWriters() {
 		super.addCSVWriters();
 		csvWriter = addCSVWriter("statistics.csv", Arrays.asList( //
-				"SystemID", "SystemIteration", "AlgorithmID", //
-				"VersionID1", "VersionID2", //
-				"timeInitRegular", "timeCoreRegular", "timeCleanRegular", //
-				"timeFirstAddRegular", "timeFirstStrongBfsRegular", "timeWeakBfsRegular", //
-				"timeSecondAddRegular", "timeSecondStrongBfsRegular", "timeFinishRegular", //
-				"timeInitIncremental", "timeCoreIncremental", "timeCleanIncremental", //
-				"timeFirstAddIncremental", "timeFirstStrongBfsIncremental", "timeWeakBfsIncremental", //
-				"timeSecondAddIncremental", "timeSecondStrongBfsIncremental", "timeFinishIncremental", //
-				"VariablesAdded", "VariablesRemoved", "VariablesShared", //
-				"ClausesAdded", "ClausesRemoved", "ClausesShared", //
-				"RedundantRegular", "StrongRegular", "WeakRegular", //
-				"RedundantIncremental", "StrongIncremental", "WeakIncremental", //
-				"coreIncremental", "coreRegular" //
+			"SystemID", "SystemIteration", "AlgorithmID", //
+			"VersionID1", "VersionID2", //
+			"timeInitRegular", "timeCoreRegular", "timeCleanRegular", //
+			"timeFirstAddRegular", "timeFirstStrongBfsRegular", "timeWeakBfsRegular", //
+			"timeSecondAddRegular", "timeSecondStrongBfsRegular", "timeFinishRegular", //
+			"timeInitIncremental", "timeCoreIncremental", "timeCleanIncremental", //
+			"timeFirstAddIncremental", "timeFirstStrongBfsIncremental", "timeWeakBfsIncremental", //
+			"timeSecondAddIncremental", "timeSecondStrongBfsIncremental", "timeFinishIncremental", //
+			"VariablesAdded", "VariablesRemoved", "VariablesShared", //
+			"ClausesAdded", "ClausesRemoved", "ClausesShared", //
+			"RedundantRegular", "StrongRegular", "WeakRegular", //
+			"RedundantIncremental", "StrongIncremental", "WeakIncremental", //
+			"coreIncremental", "coreRegular" //
 		));
 		csvWriter2 = addCSVWriter("usage.csv", Arrays.asList( //
-				"SystemID", "SystemIteration", "AlgorithmID", //
-				"VersionID1", "VersionID2", //
-				"Index", "Literal", "Time"));
+			"SystemID", "SystemIteration", "AlgorithmID", //
+			"VersionID1", "VersionID2", //
+			"Index", "Literal", "Time"));
 		modelCSVWriter = addCSVWriter("models.csv", Arrays.asList( //
-				"SystemID", "System"));
+			"SystemID", "System"));
 		versionCSVWriter = addCSVWriter("versions.csv", Arrays.asList( //
-				"SystemID", "VersionID", "VersionName"));
+			"SystemID", "VersionID", "VersionName"));
 		algorithmCSVWriter = addCSVWriter("algorithms.csv", Arrays.asList( //
-				"AlgorithmID", "Algorithm", //
-				"CheckRedundancy", "DetectStrong", "Anomalies", "Accumulative"));
+			"AlgorithmID", "Algorithm", //
+			"CheckRedundancy", "DetectStrong", "Anomalies", "Accumulative"));
 	}
 
 	private void writeModelStatistic(CSVWriter csvWriter) {
@@ -545,11 +545,11 @@ public class MIGEvaluator extends Evaluator {
 	private void writeAlgorithmStatistic(CSVWriter csvWriter) {
 		csvWriter.addValue(algorithmID);
 		csvWriter.addValue(//
-				(checkRedundancy ? "T" : "F") + "_" //
-						+ (detectStrong ? "T" : "F") + "_" //
-						+ (detectAnomalies ? "T" : "F") + "_" //
-						+ (accumulative ? "T" : "F" //
-						));
+			(checkRedundancy ? "T" : "F") + "_" //
+				+ (detectStrong ? "T" : "F") + "_" //
+				+ (detectAnomalies ? "T" : "F") + "_" //
+				+ (accumulative ? "T" : "F" //
+				));
 		csvWriter.addValue(checkRedundancy);
 		csvWriter.addValue(detectStrong);
 		csvWriter.addValue(detectAnomalies);
@@ -563,7 +563,7 @@ public class MIGEvaluator extends Evaluator {
 	}
 
 	private void writeUsageStatistic(CSVWriter csvWriter, int index, int literal, long time, int versionID1,
-			int versionID2) {
+		int versionID2) {
 		csvWriter.addValue(config.systemIDs.get(systemIndex));
 		csvWriter.addValue(systemIteration);
 		csvWriter.addValue(algorithmID);

@@ -48,13 +48,13 @@ public class CompleteMIGTest {
 		final Path root = Paths.get("models");
 		final Path financialServices = root.resolve("FinancialServices01");
 		final Path model1 = financialServices
-				.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
+			.resolve("2017-09-28_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
 		final Path model2 = financialServices
-				.resolve("2017-10-20_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
+			.resolve("2017-10-20_obfuscated_model_2wVKAsCKmjQD51mx6wEnGD3cicO5VXpf.xml");
 		final CNF cnf1 = FileHandler.load(model1, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
-				.orElse(Logger::logProblems);
+			.orElse(Logger::logProblems);
 		final CNF cnf2 = FileHandler.load(model2, FormulaFormatManager.getInstance()).map(Clauses::convertToCNF)
-				.orElse(Logger::logProblems);
+			.orElse(Logger::logProblems);
 
 		RegularMIGBuilder.statistic = new BuildStatistic();
 		DefaultMonitor monitor = new DefaultMonitor();
@@ -75,22 +75,22 @@ public class CompleteMIGTest {
 		Logger.logInfo(("Clean:   " + ((statistic.time[BuildStatistic.timeCleanRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Add1:    " + ((statistic.time[BuildStatistic.timeFirstAddRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(
-				("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsRegular] / 1_000_000) / 1000.0)));
+			("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Weak:    " + ((statistic.time[BuildStatistic.timeWeakBfsRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Add2:    " + ((statistic.time[BuildStatistic.timeSecondAddRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(
-				("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsRegular] / 1_000_000) / 1000.0)));
+			("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsRegular] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Finish:  " + ((statistic.time[BuildStatistic.timeFinishRegular] / 1_000_000) / 1000.0)));
 
 		long sum = statistic.time[BuildStatistic.timeFinishRegular] //
-				+ statistic.time[BuildStatistic.timeCoreRegular] //
-				+ statistic.time[BuildStatistic.timeCleanRegular] //
-				+ statistic.time[BuildStatistic.timeFirstAddRegular] //
-				+ statistic.time[BuildStatistic.timeFirstStrongBfsRegular] //
-				+ statistic.time[BuildStatistic.timeWeakBfsRegular] //
-				+ statistic.time[BuildStatistic.timeSecondAddRegular] //
-				+ statistic.time[BuildStatistic.timeSecondStrongBfsRegular] //
-				+ statistic.time[BuildStatistic.timeFinishRegular];
+			+ statistic.time[BuildStatistic.timeCoreRegular] //
+			+ statistic.time[BuildStatistic.timeCleanRegular] //
+			+ statistic.time[BuildStatistic.timeFirstAddRegular] //
+			+ statistic.time[BuildStatistic.timeFirstStrongBfsRegular] //
+			+ statistic.time[BuildStatistic.timeWeakBfsRegular] //
+			+ statistic.time[BuildStatistic.timeSecondAddRegular] //
+			+ statistic.time[BuildStatistic.timeSecondStrongBfsRegular] //
+			+ statistic.time[BuildStatistic.timeFinishRegular];
 
 		Logger.logInfo("------");
 		Logger.logInfo("Sum:     " + ((sum / 1_000_000) / 1000.0));
@@ -106,23 +106,23 @@ public class CompleteMIGTest {
 		Logger.logInfo(("Clean:   " + ((statistic.time[BuildStatistic.timeCleanIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Add1:    " + ((statistic.time[BuildStatistic.timeFirstAddIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(
-				("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] / 1_000_000) / 1000.0)));
+			("Strong1: " + ((statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Weak:    " + ((statistic.time[BuildStatistic.timeWeakBfsIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(
-				("Add2:    " + ((statistic.time[BuildStatistic.timeSecondAddIncremental] / 1_000_000) / 1000.0)));
+			("Add2:    " + ((statistic.time[BuildStatistic.timeSecondAddIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(
-				("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] / 1_000_000) / 1000.0)));
+			("Strong2: " + ((statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] / 1_000_000) / 1000.0)));
 		Logger.logInfo(("Finish:  " + ((statistic.time[BuildStatistic.timeFinishIncremental] / 1_000_000) / 1000.0)));
 
 		sum = statistic.time[BuildStatistic.timeFinishIncremental] //
-				+ statistic.time[BuildStatistic.timeCoreIncremental] //
-				+ statistic.time[BuildStatistic.timeCleanIncremental] //
-				+ statistic.time[BuildStatistic.timeFirstAddIncremental] //
-				+ statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] //
-				+ statistic.time[BuildStatistic.timeWeakBfsIncremental] //
-				+ statistic.time[BuildStatistic.timeSecondAddIncremental] //
-				+ statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] //
-				+ statistic.time[BuildStatistic.timeFinishIncremental];
+			+ statistic.time[BuildStatistic.timeCoreIncremental] //
+			+ statistic.time[BuildStatistic.timeCleanIncremental] //
+			+ statistic.time[BuildStatistic.timeFirstAddIncremental] //
+			+ statistic.time[BuildStatistic.timeFirstStrongBfsIncremental] //
+			+ statistic.time[BuildStatistic.timeWeakBfsIncremental] //
+			+ statistic.time[BuildStatistic.timeSecondAddIncremental] //
+			+ statistic.time[BuildStatistic.timeSecondStrongBfsIncremental] //
+			+ statistic.time[BuildStatistic.timeFinishIncremental];
 
 		Logger.logInfo("------");
 		Logger.logInfo("Sum:     " + ((sum / 1_000_000) / 1000.0));

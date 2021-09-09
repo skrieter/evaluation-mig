@@ -112,8 +112,8 @@ public class MIGBuilder {
 			final Sat4JSolver newSolver = new Sat4JSolver(new CNF(cnf.getVariableMap()));
 			stream = stream.sorted(lengthComparator).distinct().peek(c -> monitor.step()).filter(clause -> //
 			(clause.getLiterals().length < 3) //
-					|| !isRedundant(newSolver, clause)) //
-					.peek(newSolver.getFormula()::push); //
+				|| !isRedundant(newSolver, clause)) //
+				.peek(newSolver.getFormula()::push); //
 		} else {
 			stream = stream.distinct().peek(c -> monitor.step());
 		}
@@ -196,7 +196,7 @@ public class MIGBuilder {
 	protected void cleanClauses() {
 		cleanedClausesList = new ArrayList<>(mig.getCnf().getClauses().size());
 		mig.getCnf().getClauses().stream().map(c -> cleanClause(c, mig)).filter(Objects::nonNull)
-				.forEach(cleanedClausesList::add);
+			.forEach(cleanedClausesList::add);
 	}
 
 	protected LiteralList cleanClause(LiteralList clause, MIG mig) {
@@ -287,7 +287,7 @@ public class MIGBuilder {
 		solver.setSelectionStrategy(SStrategy.original());
 		for (final Vertex vertex : mig.getVertices()) {
 			if (vertex.isNormal() && ((affectedVariables == null)
-					|| affectedVariables.containsAnyVariable(Math.abs(vertex.getVar())))) {
+				|| affectedVariables.containsAnyVariable(Math.abs(vertex.getVar())))) {
 				final int var = vertex.getVar();
 				final int negVar = -var;
 				Arrays.fill(mark, false);
@@ -314,11 +314,11 @@ public class MIGBuilder {
 					fixed[index] = strongVar;
 					mark[index] = true;
 					strongVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
-							.forEach(literals::add);
+						.forEach(literals::add);
 				}
 
 				vertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
-						.forEach(literals::add);
+					.forEach(literals::add);
 
 				if (model == null) {
 					model = solver.findSolution().getLiterals();
@@ -356,7 +356,7 @@ public class MIGBuilder {
 									fixed[index] = strongVertex.getVar();
 								}
 								strongVertex.getComplexClauses().stream()
-										.flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
+									.flatMapToInt(c -> IntStream.of(c.getLiterals())).forEach(literals::add);
 							}
 							break;
 						case TIMEOUT:
@@ -385,7 +385,7 @@ public class MIGBuilder {
 //						}
 					}
 					curVertex.getComplexClauses().stream().flatMapToInt(c -> IntStream.of(c.getLiterals()))
-							.forEach(literals::add);
+						.forEach(literals::add);
 
 //					Vertex complement = mig.getVertex(-curVertex.getVar());
 //					for (final LiteralList complexClause : complement.getComplexClauses()) {
