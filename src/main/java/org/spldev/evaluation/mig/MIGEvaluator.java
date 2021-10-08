@@ -66,7 +66,7 @@ public class MIGEvaluator extends Evaluator {
 	private List<CNF> cnfs;
 
 	@Override
-	public String getId() {
+	public String getName() {
 		return "eval-mig-builder";
 	}
 
