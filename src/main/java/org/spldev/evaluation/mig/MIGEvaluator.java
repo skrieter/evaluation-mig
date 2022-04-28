@@ -27,13 +27,13 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.*;
 
+import org.spldev.analysis.mig.*;
+import org.spldev.analysis.mig.solver.*;
+import org.spldev.analysis.sat4j.*;
+import org.spldev.clauses.*;
 import org.spldev.evaluation.*;
 import org.spldev.evaluation.properties.*;
-import org.spldev.formula.analysis.mig.*;
-import org.spldev.formula.analysis.sat4j.*;
-import org.spldev.formula.clauses.*;
-import org.spldev.formula.expression.io.*;
-import org.spldev.formula.solver.mig.*;
+import org.spldev.formula.io.*;
 import org.spldev.util.io.*;
 import org.spldev.util.io.csv.*;
 import org.spldev.util.job.*;

@@ -22,10 +22,10 @@
  */
 package org.spldev.evaluation.mig;
 
-import org.spldev.formula.clauses.*;
-import org.spldev.formula.solver.*;
-import org.spldev.formula.solver.mig.*;
-import org.spldev.formula.solver.mig.MIG.*;
+import org.spldev.analysis.mig.solver.*;
+import org.spldev.analysis.mig.solver.MIG.*;
+import org.spldev.analysis.solver.*;
+import org.spldev.clauses.*;
 import org.spldev.util.job.*;
 
 /**

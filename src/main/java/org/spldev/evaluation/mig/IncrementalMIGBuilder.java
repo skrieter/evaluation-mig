@@ -25,14 +25,14 @@ package org.spldev.evaluation.mig;
 import java.util.*;
 import java.util.stream.*;
 
-import org.spldev.formula.clauses.*;
-import org.spldev.formula.clauses.LiteralList.*;
-import org.spldev.formula.expression.atomic.literal.*;
-import org.spldev.formula.solver.*;
-import org.spldev.formula.solver.mig.*;
-import org.spldev.formula.solver.mig.MIG.*;
-import org.spldev.formula.solver.mig.Vertex.*;
-import org.spldev.formula.solver.sat4j.*;
+import org.spldev.analysis.mig.solver.*;
+import org.spldev.analysis.mig.solver.MIG.*;
+import org.spldev.analysis.mig.solver.Vertex.*;
+import org.spldev.analysis.sat4j.solver.*;
+import org.spldev.analysis.solver.*;
+import org.spldev.clauses.*;
+import org.spldev.clauses.LiteralList.*;
+import org.spldev.formula.structure.atomic.literal.*;
 import org.spldev.util.job.*;
 
 public class IncrementalMIGBuilder extends MIGBuilder implements MonitorableFunction<CNF, MIG> {

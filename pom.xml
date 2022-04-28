@@ -29,7 +29,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.spldev</groupId>
-			<artifactId>formula-analysis</artifactId>
+			<artifactId>formula-analysis-sat4j</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
